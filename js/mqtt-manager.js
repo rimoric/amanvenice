@@ -62,7 +62,7 @@ class MQTTManager {
             const connectOptions = {
                 onSuccess: this.onConnect.bind(this),
                 onFailure: this.onConnectFailure.bind(this),
-                useSSL: false,
+                useSSL: true,
                 cleanSession: true,
                 keepAliveInterval: 60,
                 timeout: 10
