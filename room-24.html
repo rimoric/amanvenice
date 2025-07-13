@@ -1,0 +1,38 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMAN Venice - Room 24</title>
+    <!-- MQTT Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
+
+    <script>
+        // Set room number before loading base dashboard
+        window.AMAN_ROOM_NUMBER = '24'; // Sostituire XX con numero camera
+    </script>
+
+    <!-- MQTT Modules -->
+    <script src="js/mqtt-protocol.js"></script>
+    <script src="js/mqtt-manager.js"></script>
+    <script src="js/mqtt-handlers.js"></script>
+    <script src="js/mqtt-senders.js"></script>
+    <script src="js/dali-mqtt.js"></script>
+
+    <!-- Dashboard Base -->
+    <script src="js/aman-dashboard-base.js"></script>
+</head>
+<body>
+    <!-- Content will be loaded by base dashboard -->
+    <div id="roomLoader">
+        <div style="display: flex; align-items: center; justify-content: center; height: 100vh; background: linear-gradient(135deg, #1a4a3a, #d4af37); color: white; font-family: Arial, sans-serif;">
+            <div style="text-align: center;">
+                <h1>🏨 AMAN Venice</h1>
+                <h2>Room 24</h2>
+                <p>Loading dashboard...</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
