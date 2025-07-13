@@ -1,0 +1,52 @@
+{
+  "roomNumber": 2,
+  "roomName": "Room 02",
+  "theme": "aman-venice",
+  "password": "02",
+  "tabs": [
+    {
+      "id": "bedroom",
+      "name": "🛏️ Bedroom",
+      "subtitle": "Lighting & Climate Control",
+      "controls": [
+        {
+          "type": "dali-light",
+          "zone": "lighting",
+          "config": {
+            "name": "Main Light",
+            "mqttDevice": "CameraLuci"
+          }
+        }
+      ]
+    },
+    {
+      "id": "bathroom", 
+      "name": "🚿 Bathroom",
+      "subtitle": "Lighting & Heating Control",
+      "controls": [
+        {
+          "type": "dali-light",
+          "zone": "lighting", 
+          "config": {
+            "name": "Bathroom Lights",
+            "mqttDevice": "BagnoLuci"
+          }
+        }
+      ]
+    },
+    {
+      "id": "settings",
+      "name": "⚙️ Settings", 
+      "subtitle": "System Reset & Service Controls",
+      "controls": [
+        {
+          "type": "system-reset",
+          "zone": "system",
+          "config": {
+            "name": "System Controls"
+          }
+        }
+      ]
+    }
+  ]
+}
