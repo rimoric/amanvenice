@@ -21,7 +21,7 @@ class MQTTManager {
         this.config = {
             broker: 'broker.emqx.io',
             port: 8084,
-            protocol: 'ws',
+            protocol: 'wss',
             topicSubscribe: 'Camere/Plc',
             topicPublish: 'Camere/Hmi',
             qos: 1,
