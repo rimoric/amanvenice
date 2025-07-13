@@ -12,18 +12,71 @@
 class DALIMQTTController {
     constructor(containerId) {
         this.containerId = containerId;
-        this.container = document.getElementById(containerId);
+        this.container = null;
         this.mqttHandlers = null;
         this.mqttSenders = null;
         this.activeControls = new Map(); // Mappa controlli attivi per room/zone
         this.roomConfigs = new Map(); // Configurazioni rooms
-        
-        if (!this.container) {
-            console.error(`❌ Container ${containerId} non trovato`);
-            return;
-        }
+        this.containerCheckInterval = null;
+        this.maxContainerWaitTime = 10000; // 10 secondi
+        this.containerCheckStartTime = Date.now();
         
         console.log('💡 DALI MQTT Controller inizializzato');
+        
+        // Avvia ricerca container
+        this.findContainer();
+    }
+    
+    /**
+     * Ricerca container con retry logic
+     */
+    findContainer() {
+        this.container = document.getElementById(this.containerId);
+        
+        if (this.container) {
+            console.log(`✅ Container DALI trovato: ${this.containerId}`);
+            this.clearContainerCheck();
+            return true;
+        }
+        
+        // Calcola tempo trascorso
+        const elapsedTime = Date.now() - this.containerCheckStartTime;
+        
+        if (elapsedTime > this.maxContainerWaitTime) {
+            console.error(`❌ Timeout ricerca container ${this.containerId} dopo ${this.maxContainerWaitTime}ms`);
+            this.clearContainerCheck();
+            return false;
+        }
+        
+        // Se non trovato, avvia polling
+        if (!this.containerCheckInterval) {
+            console.log(`🔍 Ricerca container ${this.containerId}...`);
+            this.containerCheckInterval = setInterval(() => {
+                this.findContainer();
+            }, 100); // Controllo ogni 100ms
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Pulizia interval di ricerca container
+     */
+    clearContainerCheck() {
+        if (this.containerCheckInterval) {
+            clearInterval(this.containerCheckInterval);
+            this.containerCheckInterval = null;
+        }
+    }
+    
+    /**
+     * Verifica se container è disponibile
+     */
+    isContainerReady() {
+        if (!this.container) {
+            this.findContainer();
+        }
+        return !!this.container;
     }
     
     /**
@@ -64,6 +117,15 @@ class DALIMQTTController {
         try {
             console.log(`💡 Aggiornamento DALI per Camera ${daliData.roomNumber} (${daliData.roomType})`);
             
+            // Verifica disponibilità container prima di procedere
+            if (!this.isContainerReady()) {
+                console.warn(`⚠️ Container non disponibile, ritento tra 500ms...`);
+                setTimeout(() => {
+                    this.handleDALIUpdate(daliData);
+                }, 500);
+                return;
+            }
+            
             // Verifica o crea controlli per questa room
             this.ensureRoomControls(daliData.roomNumber, daliData.roomType, daliData.controlName);
             
@@ -85,6 +147,12 @@ class DALIMQTTController {
         
         if (this.roomConfigs.has(roomKey)) {
             // Room già configurata, solo update
+            return;
+        }
+        
+        // Verifica finale container prima di creare controlli
+        if (!this.isContainerReady()) {
+            console.error(`❌ Impossibile creare controlli: container ${this.containerId} non disponibile`);
             return;
         }
         
@@ -114,6 +182,12 @@ class DALIMQTTController {
      * Creazione container per una room
      */
     createRoomContainer(roomConfig) {
+        // Controllo sicurezza container
+        if (!this.container) {
+            console.error('❌ Container principale non disponibile per creazione room container');
+            return;
+        }
+        
         const roomContainer = document.createElement('div');
         roomContainer.id = `roomContainer${roomConfig.number}`;
         roomContainer.className = 'room-dali-container';
@@ -150,7 +224,15 @@ class DALIMQTTController {
         
         roomContainer.appendChild(roomTitle);
         roomContainer.appendChild(zonesContainer);
-        this.container.appendChild(roomContainer);
+        
+        // Aggiunta sicura al container
+        try {
+            this.container.appendChild(roomContainer);
+            console.log(`✅ Room container ${roomConfig.number} aggiunto con successo`);
+        } catch (error) {
+            console.error('❌ Errore aggiunta room container:', error);
+            return;
+        }
         
         roomConfig.containerElement = roomContainer;
         roomConfig.zonesContainer = zonesContainer;
@@ -171,13 +253,20 @@ class DALIMQTTController {
         // Aggiunta al container zones
         const roomConfig = this.roomConfigs.get(`room${roomNumber}`);
         if (roomConfig && roomConfig.zonesContainer) {
-            roomConfig.zonesContainer.appendChild(zoneContainer);
+            try {
+                roomConfig.zonesContainer.appendChild(zoneContainer);
+                console.log(`🎛️ Controllo creato: ${controlId} (${zoneInfo.label})`);
+            } catch (error) {
+                console.error(`❌ Errore aggiunta zona control ${controlId}:`, error);
+                return;
+            }
+        } else {
+            console.error(`❌ Zone container non trovato per room ${roomNumber}`);
+            return;
         }
         
         // Inizializzazione controllo
         this.initializeZoneControl(roomNumber, zoneKey, controlId);
-        
-        console.log(`🎛️ Controllo creato: ${controlId} (${zoneInfo.label})`);
     }
     
     /**
@@ -644,9 +733,16 @@ class DALIMQTTController {
      * Debug: Status controlli attivi
      */
     getActiveControlsStatus() {
-        const status = {};
+        const status = {
+            containerReady: this.isContainerReady(),
+            containerElement: !!this.container,
+            totalControls: this.activeControls.size,
+            totalRooms: this.roomConfigs.size,
+            controls: {}
+        };
+        
         this.activeControls.forEach((data, controlId) => {
-            status[controlId] = {
+            status.controls[controlId] = {
                 room: data.roomNumber,
                 zone: data.zoneKey,
                 level: data.currentLevel,
@@ -655,9 +751,42 @@ class DALIMQTTController {
                 lastUpdate: data.lastUpdate
             };
         });
+        
         return status;
     }
+    
+    /**
+     * Cleanup al destructor
+     */
+    destroy() {
+        this.clearContainerCheck();
+        this.activeControls.clear();
+        this.roomConfigs.clear();
+        this.container = null;
+        console.log('🧹 DALI Controller destroyed');
+    }
 }
+
+// Creazione API globale per controlli
+window.daliMQTT = {
+    setPower: (controlId, state) => {
+        const daliController = window.AmanAPI?.getDALIController();
+        if (daliController) {
+            daliController.setPower(controlId, state);
+        } else {
+            console.warn('⚠️ DALI Controller non disponibile');
+        }
+    },
+    
+    adjustLevel: (event, controlId) => {
+        const daliController = window.AmanAPI?.getDALIController();
+        if (daliController) {
+            daliController.adjustLevel(event, controlId);
+        } else {
+            console.warn('⚠️ DALI Controller non disponibile');
+        }
+    }
+};
 
 // CSS styles injection
 const daliCSS = `
