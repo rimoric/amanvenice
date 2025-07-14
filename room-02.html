@@ -839,6 +839,7 @@
         <div class="nav-container">
             <div class="nav-tabs" id="navigationTabs">
                 <button class="nav-tab active" onclick="switchTab('bedroom', this)">🛏️ Bedroom</button>
+                <button class="nav-tab" onclick="switchTab('bathroom', this)">🚿 Bathroom</button>
                 <button class="nav-tab" onclick="switchTab('settings', this)">⚙️ Settings</button>
             </div>
         </div>
@@ -970,26 +971,242 @@
                     </div>
                 </div>
 
+                <!-- Bathroom Tab -->
+                <div id="bathroom-tab" class="tab-content">
+                    <div class="room-header">
+                        <h2 class="room-title">🚿 Bathroom</h2>
+                        <p class="room-subtitle">Room 02 - Bathroom Controls</p>
+                    </div>
+
+                    <div class="controls-grid" id="bathroomControls">
+                        <!-- MAIN BATHROOM LIGHT -->
+                        <div class="control-container">
+                            <div class="dali-controller" id="dali_bathroom_main">
+                                <div class="group-label uniform-element">💡 Main Bathroom Light</div>
+                                
+                                <div class="main-controls">
+                                    <div class="level-display">
+                                        <div class="level-value uniform-element off" id="bathroom_main_display">
+                                            0<span class="level-unit">%</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="power-controls">
+                                        <button class="power-btn uniform-element active" id="bathroom_main_off" onclick="setDALIControl('bathroom_main', 'off')">OFF</button>
+                                        <button class="power-btn uniform-element" id="bathroom_main_on" onclick="setDALIControl('bathroom_main', 'on')">ON</button>
+                                    </div>
+                                </div>
+                                
+                                <div class="level-control">
+                                    <div class="level-label">Light Level Setting</div>
+                                    <div class="level-slider-container">
+                                        <div class="level-slider" onclick="adjustDALILevel(event, 'bathroom_main')">
+                                            <div class="level-fill" id="bathroom_main_fill" style="width: 0%"></div>
+                                            <div class="level-thumb" id="bathroom_main_thumb" style="left: calc(0% - 12px)"></div>
+                                        </div>
+                                        <div class="slider-scale">
+                                            <span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="status-indicator">
+                                    <div class="status-dot off" id="bathroom_main_dot"></div>
+                                    <span id="bathroom_main_status">Lights off</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- MIRROR LIGHT -->
+                        <div class="control-container">
+                            <div class="dali-controller" id="dali_bathroom_mirror">
+                                <div class="group-label uniform-element">🪞 Mirror Light</div>
+                                
+                                <div class="main-controls">
+                                    <div class="level-display">
+                                        <div class="level-value uniform-element off" id="bathroom_mirror_display">
+                                            0<span class="level-unit">%</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="power-controls">
+                                        <button class="power-btn uniform-element active" id="bathroom_mirror_off" onclick="setDALIControl('bathroom_mirror', 'off')">OFF</button>
+                                        <button class="power-btn uniform-element" id="bathroom_mirror_on" onclick="setDALIControl('bathroom_mirror', 'on')">ON</button>
+                                    </div>
+                                </div>
+                                
+                                <div class="level-control">
+                                    <div class="level-label">Light Level Setting</div>
+                                    <div class="level-slider-container">
+                                        <div class="level-slider" onclick="adjustDALILevel(event, 'bathroom_mirror')">
+                                            <div class="level-fill" id="bathroom_mirror_fill" style="width: 0%"></div>
+                                            <div class="level-thumb" id="bathroom_mirror_thumb" style="left: calc(0% - 12px)"></div>
+                                        </div>
+                                        <div class="slider-scale">
+                                            <span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="status-indicator">
+                                    <div class="status-dot off" id="bathroom_mirror_dot"></div>
+                                    <span id="bathroom_mirror_status">Lights off</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SHOWER LIGHT -->
+                        <div class="control-container">
+                            <div class="dali-controller" id="dali_bathroom_shower">
+                                <div class="group-label uniform-element">🚿 Shower Light</div>
+                                
+                                <div class="main-controls">
+                                    <div class="level-display">
+                                        <div class="level-value uniform-element off" id="bathroom_shower_display">
+                                            0<span class="level-unit">%</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="power-controls">
+                                        <button class="power-btn uniform-element active" id="bathroom_shower_off" onclick="setDALIControl('bathroom_shower', 'off')">OFF</button>
+                                        <button class="power-btn uniform-element" id="bathroom_shower_on" onclick="setDALIControl('bathroom_shower', 'on')">ON</button>
+                                    </div>
+                                </div>
+                                
+                                <div class="level-control">
+                                    <div class="level-label">Light Level Setting</div>
+                                    <div class="level-slider-container">
+                                        <div class="level-slider" onclick="adjustDALILevel(event, 'bathroom_shower')">
+                                            <div class="level-fill" id="bathroom_shower_fill" style="width: 0%"></div>
+                                            <div class="level-thumb" id="bathroom_shower_thumb" style="left: calc(0% - 12px)"></div>
+                                        </div>
+                                        <div class="slider-scale">
+                                            <span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="status-indicator">
+                                    <div class="status-dot off" id="bathroom_shower_dot"></div>
+                                    <span id="bathroom_shower_status">Lights off</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- BATHROOM FAN CONTROL -->
+                        <div class="control-container">
+                            <div style="background: linear-gradient(135deg, #E3F2FD 0%, #F0F8FF 100%); border: 1px solid rgba(33, 150, 243, 0.3); border-radius: 20px; padding: 25px;">
+                                <div class="group-label" style="color: #1976D2;">🌪️ Bathroom Fan</div>
+                                
+                                <div class="main-controls">
+                                    <div class="level-display">
+                                        <div class="uniform-element off" id="bathroom_fan_display" style="background: rgba(33, 150, 243, 0.1);">
+                                            <span style="color: #1976D2;">OFF</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="power-controls">
+                                        <button class="power-btn uniform-element active" id="bathroom_fan_off" onclick="setBathroomFan('off')" style="background: rgba(33, 150, 243, 0.2);">OFF</button>
+                                        <button class="power-btn uniform-element" id="bathroom_fan_on" onclick="setBathroomFan('on')" style="background: rgba(33, 150, 243, 0.1);">ON</button>
+                                    </div>
+                                </div>
+                                
+                                <div class="status-indicator">
+                                    <div class="status-dot off" id="bathroom_fan_dot"></div>
+                                    <span id="bathroom_fan_status">Fan off</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Settings Tab -->
                 <div id="settings-tab" class="tab-content">
                     <div class="room-header">
                         <h2 class="room-title">⚙️ Settings</h2>
-                        <p class="room-subtitle">Room 02 - System Settings</p>
+                        <p class="room-subtitle">Room 02 - System Settings & Controls</p>
                     </div>
 
                     <div class="controls-grid">
+                        <!-- SYSTEM INFORMATION -->
                         <div class="control-container">
-                            <h3>System Information</h3>
-                            <p><strong>Room:</strong> 02</p>
-                            <p><strong>Type:</strong> Bedroom</p>
-                            <p><strong>MQTT Status:</strong> <span id="mqttStatus">Disconnected</span></p>
-                            <p><strong>Last Update:</strong> <span id="lastUpdate">Never</span></p>
+                            <h3 style="color: var(--aman-green); margin-bottom: 20px;">🏠 System Information</h3>
+                            <div style="display: grid; gap: 15px;">
+                                <div style="display: flex; justify-content: space-between; padding: 10px; background: rgba(26, 74, 58, 0.05); border-radius: 8px;">
+                                    <span style="font-weight: 500; color: var(--aman-green);">Room:</span>
+                                    <span style="font-weight: 600; color: var(--gray-medium);">02</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; padding: 10px; background: rgba(26, 74, 58, 0.05); border-radius: 8px;">
+                                    <span style="font-weight: 500; color: var(--aman-green);">Type:</span>
+                                    <span style="font-weight: 600; color: var(--gray-medium);">Bedroom + Bathroom</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; padding: 10px; background: rgba(26, 74, 58, 0.05); border-radius: 8px;">
+                                    <span style="font-weight: 500; color: var(--aman-green);">MQTT Status:</span>
+                                    <span style="font-weight: 600;" id="mqttStatus">Disconnected</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; padding: 10px; background: rgba(26, 74, 58, 0.05); border-radius: 8px;">
+                                    <span style="font-weight: 500; color: var(--aman-green);">Last Update:</span>
+                                    <span style="font-weight: 600;" id="lastUpdate">Never</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; padding: 10px; background: rgba(26, 74, 58, 0.05); border-radius: 8px;">
+                                    <span style="font-weight: 500; color: var(--aman-green);">Dashboard Version:</span>
+                                    <span style="font-weight: 600; color: var(--gray-medium);">v2.0 Autonomous</span>
+                                </div>
+                            </div>
                         </div>
                         
+                        <!-- TEST CONTROLS -->
                         <div class="control-container">
-                            <h3>Test Controls</h3>
-                            <button class="login-button" onclick="testAllLights()" style="margin: 10px 0;">Test All Lights</button>
-                            <button class="login-button" onclick="resetAllLights()" style="margin: 10px 0;">Reset All Lights</button>
+                            <h3 style="color: var(--aman-green); margin-bottom: 20px;">🧪 Test Controls</h3>
+                            <div style="display: grid; gap: 15px;">
+                                <button class="login-button" onclick="testAllLights()" style="margin: 0; background: linear-gradient(145deg, #4CAF50, #66BB6A);">
+                                    🔍 Test All Lights
+                                </button>
+                                <button class="login-button" onclick="resetAllLights()" style="margin: 0; background: linear-gradient(145deg, #FF5722, #FF7043);">
+                                    🔄 Reset All Lights
+                                </button>
+                                <button class="login-button" onclick="testBedroomOnly()" style="margin: 0; background: linear-gradient(145deg, #2196F3, #42A5F5);">
+                                    🛏️ Test Bedroom Only
+                                </button>
+                                <button class="login-button" onclick="testBathroomOnly()" style="margin: 0; background: linear-gradient(145deg, #00BCD4, #26C6DA);">
+                                    🚿 Test Bathroom Only
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- SCENE CONTROLS -->
+                        <div class="control-container">
+                            <h3 style="color: var(--aman-green); margin-bottom: 20px;">🎭 Scene Controls</h3>
+                            <div style="display: grid; gap: 15px;">
+                                <button class="login-button" onclick="activateScene('evening')" style="margin: 0; background: linear-gradient(145deg, #9C27B0, #BA68C8);">
+                                    🌅 Evening Scene
+                                </button>
+                                <button class="login-button" onclick="activateScene('night')" style="margin: 0; background: linear-gradient(145deg, #3F51B5, #7986CB);">
+                                    🌙 Night Scene
+                                </button>
+                                <button class="login-button" onclick="activateScene('reading')" style="margin: 0; background: linear-gradient(145deg, #795548, #A1887F);">
+                                    📖 Reading Scene
+                                </button>
+                                <button class="login-button" onclick="activateScene('alloff')" style="margin: 0; background: linear-gradient(145deg, #424242, #757575);">
+                                    🚫 All Off
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- DEBUG CONSOLE -->
+                        <div class="control-container">
+                            <h3 style="color: var(--aman-green); margin-bottom: 20px;">🐛 Debug Tools</h3>
+                            <div style="display: grid; gap: 15px;">
+                                <button class="login-button" onclick="showDebugInfo()" style="margin: 0; background: linear-gradient(145deg, #607D8B, #90A4AE);">
+                                    🔍 Show Debug Info
+                                </button>
+                                <button class="login-button" onclick="clearConsole()" style="margin: 0; background: linear-gradient(145deg, #E91E63, #F06292);">
+                                    🧹 Clear Console
+                                </button>
+                                <button class="login-button" onclick="reconnectMQTT()" style="margin: 0; background: linear-gradient(145deg, #FF9800, #FFB74D);">
+                                    🔄 Reconnect MQTT
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1100,6 +1317,16 @@
             rightabat: { level: 0, isOn: false, mqttName: 'ComodinoDx' },
             desk: { level: 0, isOn: false, mqttName: 'Scrivania' }
         };
+
+        // Bathroom Controls state
+        const bathroomControls = {
+            bathroom_main: { level: 0, isOn: false, mqttName: 'BagnoTotale' },
+            bathroom_mirror: { level: 0, isOn: false, mqttName: 'BagnoSpecchio' },
+            bathroom_shower: { level: 0, isOn: false, mqttName: 'BagnoDoccia' }
+        };
+
+        // Fan control state
+        let bathroomFan = { isOn: false, mqttName: 'BagnoVentola' };
 
         // ===== MQTT PROTOCOL =====
         class MQTTProtocol {
@@ -1393,6 +1620,14 @@
             Object.keys(daliControls).forEach(zone => {
                 updateDALIDisplay(zone);
             });
+
+            // Initialize bathroom controls display
+            Object.keys(bathroomControls).forEach(zone => {
+                updateBathroomDALIDisplay(zone);
+            });
+
+            // Initialize bathroom fan
+            updateBathroomFanDisplay();
             
             console.log('✅ Room 02 ready for login');
         }
@@ -1625,6 +1860,13 @@
 
         // ===== DALI CONTROL FUNCTIONS =====
         function setDALIControl(zone, action) {
+            // Check if it's a bathroom control
+            if (zone.startsWith('bathroom_')) {
+                setBathroomDALIControl(zone, action);
+                return;
+            }
+            
+            // Original bedroom controls logic
             const isOn = action === 'on';
             daliControls[zone].isOn = isOn;
             
@@ -1638,7 +1880,28 @@
             sendDALICommand(zone);
         }
 
+        function setBathroomDALIControl(zone, action) {
+            const isOn = action === 'on';
+            bathroomControls[zone].isOn = isOn;
+            
+            if (!isOn) {
+                bathroomControls[zone].level = 0;
+            } else if (bathroomControls[zone].level === 0) {
+                bathroomControls[zone].level = 50; // Default level
+            }
+            
+            updateBathroomDALIDisplay(zone);
+            sendBathroomDALICommand(zone);
+        }
+
         function adjustDALILevel(event, zone) {
+            // Check if it's a bathroom control
+            if (zone.startsWith('bathroom_')) {
+                adjustBathroomDALILevel(event, zone);
+                return;
+            }
+            
+            // Original bedroom controls logic
             const slider = event.currentTarget;
             const rect = slider.getBoundingClientRect();
             const percentage = Math.max(0, Math.min(100, Math.round(((event.clientX - rect.left) / rect.width) * 100)));
@@ -1650,8 +1913,67 @@
             sendDALICommand(zone);
         }
 
+        function adjustBathroomDALILevel(event, zone) {
+            const slider = event.currentTarget;
+            const rect = slider.getBoundingClientRect();
+            const percentage = Math.max(0, Math.min(100, Math.round(((event.clientX - rect.left) / rect.width) * 100)));
+            
+            bathroomControls[zone].level = percentage;
+            bathroomControls[zone].isOn = percentage > 0;
+            
+            updateBathroomDALIDisplay(zone);
+            sendBathroomDALICommand(zone);
+        }
+
         function updateDALIDisplay(zone) {
+            // Check if it's a bathroom control
+            if (zone.startsWith('bathroom_')) {
+                updateBathroomDALIDisplay(zone);
+                return;
+            }
+            
+            // Original bedroom controls logic
             const control = daliControls[zone];
+            if (!control) return;
+            
+            // Update level display
+            const display = document.getElementById(`${zone}_display`);
+            if (display) {
+                display.innerHTML = `${control.level}<span class="level-unit">%</span>`;
+                display.classList.toggle('on', control.isOn);
+                display.classList.toggle('off', !control.isOn);
+            }
+            
+            // Update slider
+            const fill = document.getElementById(`${zone}_fill`);
+            const thumb = document.getElementById(`${zone}_thumb`);
+            if (fill && thumb) {
+                fill.style.width = control.level + '%';
+                thumb.style.left = `calc(${control.level}% - 12px)`;
+                thumb.classList.toggle('active', control.isOn);
+            }
+            
+            // Update buttons
+            const onBtn = document.getElementById(`${zone}_on`);
+            const offBtn = document.getElementById(`${zone}_off`);
+            if (onBtn && offBtn) {
+                onBtn.classList.toggle('on-active', control.isOn);
+                offBtn.classList.toggle('active', !control.isOn);
+            }
+            
+            // Update status
+            const dot = document.getElementById(`${zone}_dot`);
+            const status = document.getElementById(`${zone}_status`);
+            if (dot && status) {
+                dot.classList.toggle('on', control.isOn);
+                dot.classList.toggle('off', !control.isOn);
+                status.textContent = control.isOn ? 'Lights on' : 'Lights off';
+            }
+        }
+
+        function updateBathroomDALIDisplay(zone) {
+            const control = bathroomControls[zone];
+            if (!control) return;
             
             // Update level display
             const display = document.getElementById(`${zone}_display`);
@@ -1709,6 +2031,99 @@
             } else {
                 console.warn('⚠️ MQTT not connected - command not sent');
                 logToConsole('error', 'MQTT Required', `Cannot send ${control.mqttName} command - MQTT not connected`);
+            }
+        }
+
+        function sendBathroomDALICommand(zone) {
+            const control = bathroomControls[zone];
+            
+            if (mqttManager && mqttManager.isConnected) {
+                const payload = {
+                    nCamera: 2,
+                    sLocale: 'Bagno',
+                    sNome: control.mqttName,
+                    nLivello: control.level,
+                    bOnOff: control.isOn,
+                    Timestamp: new Date().toISOString()
+                };
+                
+                const success = mqttManager.publish(payload);
+                if (success) {
+                    console.log('📤 Bathroom DALI Command sent:', payload);
+                    logToConsole('sent', `${control.mqttName}`, `Level: ${control.level}% - ${control.isOn ? 'ON' : 'OFF'}`);
+                }
+            } else {
+                console.warn('⚠️ MQTT not connected - bathroom command not sent');
+                logToConsole('error', 'MQTT Required', `Cannot send ${control.mqttName} command - MQTT not connected`);
+            }
+        }
+
+        // ===== BATHROOM FAN FUNCTIONS =====
+        function setBathroomFan(action) {
+            const isOn = action === 'on';
+            bathroomFan.isOn = isOn;
+            
+            updateBathroomFanDisplay();
+            sendBathroomFanCommand();
+        }
+
+        function updateBathroomFanDisplay() {
+            const display = document.getElementById('bathroom_fan_display');
+            const onBtn = document.getElementById('bathroom_fan_on');
+            const offBtn = document.getElementById('bathroom_fan_off');
+            const dot = document.getElementById('bathroom_fan_dot');
+            const status = document.getElementById('bathroom_fan_status');
+            
+            if (display) {
+                display.innerHTML = `<span style="color: #1976D2;">${bathroomFan.isOn ? 'ON' : 'OFF'}</span>`;
+                display.classList.toggle('on', bathroomFan.isOn);
+                display.classList.toggle('off', !bathroomFan.isOn);
+            }
+            
+            if (onBtn && offBtn) {
+                onBtn.classList.toggle('on-active', bathroomFan.isOn);
+                offBtn.classList.toggle('active', !bathroomFan.isOn);
+                
+                if (bathroomFan.isOn) {
+                    onBtn.style.background = 'rgba(33, 150, 243, 0.4)';
+                    offBtn.style.background = 'rgba(33, 150, 243, 0.1)';
+                } else {
+                    onBtn.style.background = 'rgba(33, 150, 243, 0.1)';
+                    offBtn.style.background = 'rgba(33, 150, 243, 0.3)';
+                }
+            }
+            
+            if (dot && status) {
+                dot.classList.toggle('on', bathroomFan.isOn);
+                dot.classList.toggle('off', !bathroomFan.isOn);
+                status.textContent = bathroomFan.isOn ? 'Fan on' : 'Fan off';
+                
+                if (bathroomFan.isOn) {
+                    dot.style.background = 'rgba(33, 150, 243, 0.8)';
+                } else {
+                    dot.style.background = 'rgba(108, 117, 125, 0.8)';
+                }
+            }
+        }
+
+        function sendBathroomFanCommand() {
+            if (mqttManager && mqttManager.isConnected) {
+                const payload = {
+                    nCamera: 2,
+                    sLocale: 'Bagno',
+                    sNome: bathroomFan.mqttName,
+                    bOnOff: bathroomFan.isOn,
+                    Timestamp: new Date().toISOString()
+                };
+                
+                const success = mqttManager.publish(payload);
+                if (success) {
+                    console.log('📤 Bathroom Fan Command sent:', payload);
+                    logToConsole('sent', `${bathroomFan.mqttName}`, `${bathroomFan.isOn ? 'ON' : 'OFF'}`);
+                }
+            } else {
+                console.warn('⚠️ MQTT not connected - fan command not sent');
+                logToConsole('error', 'MQTT Required', `Cannot send ${bathroomFan.mqttName} command - MQTT not connected`);
             }
         }
 
@@ -1860,17 +2275,100 @@
             console.log('🧪 Testing all lights...');
             logToConsole('info', 'Test Started', 'Testing all DALI lights in sequence');
             
+            const bedroomZones = Object.keys(daliControls);
+            const bathroomZones = Object.keys(bathroomControls);
+            const allZones = [...bedroomZones, ...bathroomZones];
+            let index = 0;
+            
+            function testNext() {
+                if (index >= allZones.length) {
+                    logToConsole('info', 'Test Complete', 'All lights tested');
+                    return;
+                }
+                
+                const zone = allZones[index];
+                console.log(`🧪 Testing ${zone}...`);
+                
+                // Determine if it's bedroom or bathroom
+                if (bedroomZones.includes(zone)) {
+                    daliControls[zone].level = 75;
+                    daliControls[zone].isOn = true;
+                    updateDALIDisplay(zone);
+                    sendDALICommand(zone);
+                    
+                    setTimeout(() => {
+                        daliControls[zone].level = 0;
+                        daliControls[zone].isOn = false;
+                        updateDALIDisplay(zone);
+                        sendDALICommand(zone);
+                        
+                        index++;
+                        setTimeout(testNext, 500);
+                    }, 2000);
+                } else {
+                    bathroomControls[zone].level = 75;
+                    bathroomControls[zone].isOn = true;
+                    updateBathroomDALIDisplay(zone);
+                    sendBathroomDALICommand(zone);
+                    
+                    setTimeout(() => {
+                        bathroomControls[zone].level = 0;
+                        bathroomControls[zone].isOn = false;
+                        updateBathroomDALIDisplay(zone);
+                        sendBathroomDALICommand(zone);
+                        
+                        index++;
+                        setTimeout(testNext, 500);
+                    }, 2000);
+                }
+            }
+            
+            testNext();
+        }
+
+        function resetAllLights() {
+            console.log('🔄 Resetting all lights...');
+            logToConsole('info', 'Reset Started', 'Turning off all DALI lights');
+            
+            // Reset bedroom lights
+            Object.keys(daliControls).forEach(zone => {
+                daliControls[zone].level = 0;
+                daliControls[zone].isOn = false;
+                updateDALIDisplay(zone);
+                sendDALICommand(zone);
+            });
+            
+            // Reset bathroom lights
+            Object.keys(bathroomControls).forEach(zone => {
+                bathroomControls[zone].level = 0;
+                bathroomControls[zone].isOn = false;
+                updateBathroomDALIDisplay(zone);
+                sendBathroomDALICommand(zone);
+            });
+            
+            // Reset bathroom fan
+            bathroomFan.isOn = false;
+            updateBathroomFanDisplay();
+            sendBathroomFanCommand();
+            
+            logToConsole('info', 'Reset Complete', 'All lights and fan turned off');
+        }
+
+        function testBedroomOnly() {
+            console.log('🧪 Testing bedroom lights only...');
+            logToConsole('info', 'Bedroom Test Started', 'Testing bedroom DALI lights');
+            
             const zones = Object.keys(daliControls);
             let index = 0;
             
             function testNext() {
                 if (index >= zones.length) {
-                    logToConsole('info', 'Test Complete', 'All lights tested');
+                    logToConsole('info', 'Bedroom Test Complete', 'All bedroom lights tested');
                     return;
                 }
                 
                 const zone = zones[index];
-                console.log(`🧪 Testing ${zone}...`);
+                console.log(`🧪 Testing bedroom ${zone}...`);
                 
                 // Turn on at 75%
                 daliControls[zone].level = 75;
@@ -1893,18 +2391,178 @@
             testNext();
         }
 
-        function resetAllLights() {
-            console.log('🔄 Resetting all lights...');
-            logToConsole('info', 'Reset Started', 'Turning off all DALI lights');
+        function testBathroomOnly() {
+            console.log('🧪 Testing bathroom lights only...');
+            logToConsole('info', 'Bathroom Test Started', 'Testing bathroom DALI lights and fan');
             
-            Object.keys(daliControls).forEach(zone => {
-                daliControls[zone].level = 0;
-                daliControls[zone].isOn = false;
+            const zones = Object.keys(bathroomControls);
+            let index = 0;
+            
+            function testNext() {
+                if (index >= zones.length) {
+                    // Test fan after lights
+                    testBathroomFan();
+                    return;
+                }
+                
+                const zone = zones[index];
+                console.log(`🧪 Testing bathroom ${zone}...`);
+                
+                // Turn on at 75%
+                bathroomControls[zone].level = 75;
+                bathroomControls[zone].isOn = true;
+                updateBathroomDALIDisplay(zone);
+                sendBathroomDALICommand(zone);
+                
+                // Turn off after 2 seconds
+                setTimeout(() => {
+                    bathroomControls[zone].level = 0;
+                    bathroomControls[zone].isOn = false;
+                    updateBathroomDALIDisplay(zone);
+                    sendBathroomDALICommand(zone);
+                    
+                    index++;
+                    setTimeout(testNext, 500);
+                }, 2000);
+            }
+            
+            testNext();
+        }
+
+        function testBathroomFan() {
+            console.log('🧪 Testing bathroom fan...');
+            
+            // Turn on fan
+            bathroomFan.isOn = true;
+            updateBathroomFanDisplay();
+            sendBathroomFanCommand();
+            
+            // Turn off after 3 seconds
+            setTimeout(() => {
+                bathroomFan.isOn = false;
+                updateBathroomFanDisplay();
+                sendBathroomFanCommand();
+                
+                logToConsole('info', 'Bathroom Test Complete', 'All bathroom devices tested');
+            }, 3000);
+        }
+
+        // ===== SCENE FUNCTIONS =====
+        function activateScene(sceneName) {
+            console.log(`🎭 Activating scene: ${sceneName}`);
+            
+            switch (sceneName) {
+                case 'evening':
+                    logToConsole('info', 'Evening Scene', 'Activating warm evening lighting');
+                    
+                    // Bedroom - warm lighting
+                    setSceneLighting('main', 60);
+                    setSceneLighting('courtesy', 40);
+                    setSceneLighting('bed', 30);
+                    setSceneLighting('leftabat', 50);
+                    setSceneLighting('rightabat', 50);
+                    setSceneLighting('desk', 0);
+                    
+                    // Bathroom
+                    setSceneLighting('bathroom_main', 40, true);
+                    setSceneLighting('bathroom_mirror', 60, true);
+                    setSceneLighting('bathroom_shower', 0, true);
+                    break;
+                    
+                case 'night':
+                    logToConsole('info', 'Night Scene', 'Activating minimal night lighting');
+                    
+                    // Bedroom - minimal lighting
+                    setSceneLighting('main', 0);
+                    setSceneLighting('courtesy', 20);
+                    setSceneLighting('bed', 10);
+                    setSceneLighting('leftabat', 15);
+                    setSceneLighting('rightabat', 15);
+                    setSceneLighting('desk', 0);
+                    
+                    // Bathroom
+                    setSceneLighting('bathroom_main', 20, true);
+                    setSceneLighting('bathroom_mirror', 30, true);
+                    setSceneLighting('bathroom_shower', 0, true);
+                    break;
+                    
+                case 'reading':
+                    logToConsole('info', 'Reading Scene', 'Activating focused reading lighting');
+                    
+                    // Bedroom - focused on bed area
+                    setSceneLighting('main', 30);
+                    setSceneLighting('courtesy', 20);
+                    setSceneLighting('bed', 80);
+                    setSceneLighting('leftabat', 70);
+                    setSceneLighting('rightabat', 70);
+                    setSceneLighting('desk', 90);
+                    
+                    // Bathroom
+                    setSceneLighting('bathroom_main', 0, true);
+                    setSceneLighting('bathroom_mirror', 20, true);
+                    setSceneLighting('bathroom_shower', 0, true);
+                    break;
+                    
+                case 'alloff':
+                    logToConsole('info', 'All Off Scene', 'Turning off all devices');
+                    resetAllLights();
+                    break;
+            }
+        }
+
+        function setSceneLighting(zone, level, isBathroom = false) {
+            if (isBathroom) {
+                bathroomControls[zone].level = level;
+                bathroomControls[zone].isOn = level > 0;
+                updateBathroomDALIDisplay(zone);
+                sendBathroomDALICommand(zone);
+            } else {
+                daliControls[zone].level = level;
+                daliControls[zone].isOn = level > 0;
                 updateDALIDisplay(zone);
                 sendDALICommand(zone);
-            });
+            }
+        }
+
+        // ===== DEBUG FUNCTIONS =====
+        function showDebugInfo() {
+            const debugInfo = {
+                timestamp: new Date().toISOString(),
+                room: '02',
+                connected: connected,
+                mqttManager: !!mqttManager,
+                mqttConnected: mqttManager ? mqttManager.isConnected : false,
+                clientId: mqttManager ? mqttManager.config.clientId : 'N/A',
+                bedroomControls: Object.keys(daliControls).length,
+                bathroomControls: Object.keys(bathroomControls).length,
+                bathroomFan: !!bathroomFan,
+                lastUpdate: lastUpdateTime
+            };
             
-            logToConsole('info', 'Reset Complete', 'All lights turned off');
+            console.log('🐛 Debug Info:', debugInfo);
+            logToConsole('info', 'Debug Info', JSON.stringify(debugInfo, null, 2));
+        }
+
+        function clearConsole() {
+            const content = document.getElementById('consoleContent');
+            if (content) {
+                content.innerHTML = '<div class="message-info">[SYSTEM] Console cleared</div>';
+                logToConsole('info', 'Console Cleared', 'Debug console has been cleared');
+            }
+        }
+
+        function reconnectMQTT() {
+            console.log('🔄 Manual MQTT reconnection...');
+            logToConsole('info', 'Reconnect Started', 'Attempting manual MQTT reconnection');
+            
+            if (mqttManager) {
+                mqttManager.disconnect();
+                setTimeout(() => {
+                    mqttManager.connect();
+                }, 1000);
+            } else {
+                logToConsole('error', 'MQTT Manager Missing', 'MQTT Manager not initialized');
+            }
         }
 
         // ===== UTILITY FUNCTIONS =====
