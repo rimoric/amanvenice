@@ -8,6 +8,7 @@
  * - Creazione controlli dinamici
  * - Coordinamento moduli
  * - Parser messaggi clima MQTT
+ * - Parser messaggi DALI MQTT (IMPLEMENTATO)
  */
 
 class AmanDashboardCore {
@@ -507,11 +508,256 @@ class AmanDashboardCore {
     }
     
     /**
-     * Gestione messaggi DALI (placeholder - da implementare)
+     * Gestione messaggi DALI - IMPLEMENTAZIONE COMPLETA
      */
     handleDALIMessage(jsonData) {
-        console.log(`💡 DALI message received for Room ${jsonData.nCamera}`);
-        // TODO: Implementare parser DALI se necessario
+        try {
+            console.log(`💡 DALI message received for Room ${jsonData.nCamera} - Section: ${jsonData.sNome}`);
+            
+            // Routing per sezione specifica
+            switch (jsonData.sNome) {
+                case 'CameraLuci':
+                    this.updateBedroomLightsFromMQTT(jsonData);
+                    break;
+                    
+                case 'BagnoLuci':
+                    this.updateBathroomLightsFromMQTT(jsonData);
+                    break;
+                    
+                case 'SoggiornoLuci':
+                    this.updateLivingRoomLightsFromMQTT(jsonData);
+                    break;
+                    
+                default:
+                    console.warn(`⚠️ Unknown DALI section: ${jsonData.sNome}`);
+                    return;
+            }
+            
+            // Log successo
+            this.logToConsole('info', 'DALI Updated', `${jsonData.sNome} lights updated for Room ${jsonData.nCamera}`);
+            
+        } catch (error) {
+            console.error('❌ Error handling DALI message:', error);
+            this.logToConsole('error', 'DALI Error', error.message);
+        }
+    }
+    
+    /**
+     * Aggiornamento luci Camera (Bedroom) da MQTT
+     */
+    updateBedroomLightsFromMQTT(jsonData) {
+        try {
+            console.log('🛏️ Updating bedroom lights from MQTT');
+            
+            // Mapping campi MQTT → ID controlli bedroom
+            const lightMapping = {
+                'nTotaLiv': 'bedroom_mainlight_0',           // 💡 Main Light
+                'nParzLiv': 'bedroom_courtesylight_1',       // 🌟 Courtesy Light  
+                'nLettLiv': 'bedroom_bedlight_2',            // 🛏️ Bed Light
+                'nCoSxLiv': 'bedroom_leftabatjour_3',        // 💡 Left Abat Jour
+                'nCoDxLiv': 'bedroom_rightabatjour_4',       // 💡 Right Abat Jour
+                'nScriLiv': 'bedroom_desklight_5'            // 💻 Desk Light
+            };
+            
+            // Aggiorna ogni controllo luce
+            let updatedCount = 0;
+            Object.entries(lightMapping).forEach(([mqttField, controlId]) => {
+                if (jsonData.hasOwnProperty(mqttField)) {
+                    const level = jsonData[mqttField];
+                    const success = this.updateDALIControlFromMQTT(controlId, level);
+                    if (success) {
+                        updatedCount++;
+                        console.log(`✅ ${mqttField}: ${level}% → ${controlId}`);
+                    }
+                }
+            });
+            
+            console.log(`🛏️ Bedroom lights updated: ${updatedCount} controls`);
+            
+        } catch (error) {
+            console.error('❌ Error updating bedroom lights:', error);
+        }
+    }
+    
+    /**
+     * Aggiornamento luci Bagno (Bathroom) da MQTT
+     */
+    updateBathroomLightsFromMQTT(jsonData) {
+        try {
+            console.log('🚿 Updating bathroom lights from MQTT');
+            
+            // Mapping campi MQTT → ID controlli bathroom
+            const lightMapping = {
+                'nTotaLiv': 'bathroom_mainlight_0',          // 💡 Main Light
+                'nParzLiv': 'bathroom_courtesylight_1'       // 🌟 Courtesy Light
+            };
+            
+            // Per Room 19 (configurazione speciale)
+            if (parseInt(this.roomNumber) === 19) {
+                lightMapping['nSpecLiv'] = 'bathroom_speciallight_1';  // 🌟 Special Light
+            }
+            
+            // Aggiorna ogni controllo luce
+            let updatedCount = 0;
+            Object.entries(lightMapping).forEach(([mqttField, controlId]) => {
+                if (jsonData.hasOwnProperty(mqttField)) {
+                    const level = jsonData[mqttField];
+                    const success = this.updateDALIControlFromMQTT(controlId, level);
+                    if (success) {
+                        updatedCount++;
+                        console.log(`✅ ${mqttField}: ${level}% → ${controlId}`);
+                    }
+                }
+            });
+            
+            console.log(`🚿 Bathroom lights updated: ${updatedCount} controls`);
+            
+        } catch (error) {
+            console.error('❌ Error updating bathroom lights:', error);
+        }
+    }
+    
+    /**
+     * Aggiornamento luci Soggiorno (Living Room) da MQTT
+     */
+    updateLivingRoomLightsFromMQTT(jsonData) {
+        try {
+            console.log('🏛️ Updating living room lights from MQTT');
+            
+            // Mapping campi MQTT → ID controlli living room
+            const lightMapping = {
+                'nTotaLiv': 'living_mainlight_0',            // 💡 Main Light
+                'nParzLiv': 'living_courtesylight_1',        // 🌟 Courtesy Light
+                'nDivLiv': 'living_sofalight_2',             // 🛋️ Sofa Light
+                'nTvLiv': 'living_tvlight_3'                 // 📺 TV Light
+            };
+            
+            // Aggiorna ogni controllo luce
+            let updatedCount = 0;
+            Object.entries(lightMapping).forEach(([mqttField, controlId]) => {
+                if (jsonData.hasOwnProperty(mqttField)) {
+                    const level = jsonData[mqttField];
+                    const success = this.updateDALIControlFromMQTT(controlId, level);
+                    if (success) {
+                        updatedCount++;
+                        console.log(`✅ ${mqttField}: ${level}% → ${controlId}`);
+                    }
+                }
+            });
+            
+            console.log(`🏛️ Living room lights updated: ${updatedCount} controls`);
+            
+        } catch (error) {
+            console.error('❌ Error updating living room lights:', error);
+        }
+    }
+    
+    /**
+     * Aggiornamento singolo controllo DALI da MQTT
+     */
+    updateDALIControlFromMQTT(controlId, level) {
+        try {
+            // Trova il controllo
+            const control = this.getControl(controlId);
+            if (!control) {
+                console.warn(`⚠️ Control ${controlId} not found for MQTT update`);
+                return false;
+            }
+            
+            // Verifica che sia un controllo DALI
+            if (control.type !== 'dali') {
+                console.warn(`⚠️ Control ${controlId} is not a DALI control`);
+                return false;
+            }
+            
+            // Validazione livello
+            const validLevel = Math.max(0, Math.min(100, Math.round(level)));
+            
+            // Aggiorna dati controllo
+            const oldLevel = control.level;
+            const oldPower = control.power;
+            
+            control.level = validLevel;
+            control.power = validLevel > 0;
+            
+            // Log cambiamento
+            if (oldLevel !== validLevel || oldPower !== control.power) {
+                console.log(`🔄 ${controlId}: ${oldLevel}%→${validLevel}% (${oldPower ? 'ON' : 'OFF'}→${control.power ? 'ON' : 'OFF'})`);
+            }
+            
+            // Aggiorna UI tramite Control Factory (senza inviare MQTT)
+            this.updateDALIDisplayFromMQTT(controlId, control);
+            
+            return true;
+            
+        } catch (error) {
+            console.error(`❌ Error updating DALI control ${controlId}:`, error);
+            return false;
+        }
+    }
+    
+    /**
+     * Aggiornamento display DALI da MQTT (senza loop MQTT)
+     */
+    updateDALIDisplayFromMQTT(controlId, control) {
+        try {
+            // Update level display
+            const display = document.getElementById(`${controlId}_display`);
+            if (display) {
+                display.innerHTML = `${control.level}<span class="level-unit">%</span>`;
+                display.classList.toggle('on', control.power);
+                display.classList.toggle('off', !control.power);
+                
+                // Visual feedback per MQTT update
+                display.style.border = '2px solid #4CAF50';
+                setTimeout(() => display.style.border = '', 1000);
+            }
+            
+            // Update slider
+            const fill = document.getElementById(`${controlId}_fill`);
+            const thumb = document.getElementById(`${controlId}_thumb`);
+            if (fill && thumb) {
+                fill.style.width = control.level + '%';
+                thumb.style.left = `calc(${control.level}% - 12px)`;
+                thumb.classList.toggle('active', control.power);
+                
+                // Visual feedback
+                fill.style.backgroundColor = '#4CAF50';
+                setTimeout(() => fill.style.backgroundColor = '', 1000);
+            }
+            
+            // Update buttons
+            const onBtn = document.getElementById(`${controlId}_on`);
+            const offBtn = document.getElementById(`${controlId}_off`);
+            if (onBtn && offBtn) {
+                onBtn.classList.toggle('on-active', control.power);
+                onBtn.classList.toggle('active', false);
+                offBtn.classList.toggle('active', !control.power);
+                
+                // Visual feedback on state change
+                const activeBtn = control.power ? onBtn : offBtn;
+                activeBtn.style.boxShadow = '0 0 10px #4CAF50';
+                setTimeout(() => activeBtn.style.boxShadow = '', 1000);
+            }
+            
+            // Update status
+            const dot = document.getElementById(`${controlId}_dot`);
+            const status = document.getElementById(`${controlId}_status`);
+            if (dot && status) {
+                dot.classList.toggle('on', control.power);
+                dot.classList.toggle('off', !control.power);
+                status.textContent = control.power ? 'Lights On' : 'Lights Off';
+                
+                // Visual feedback
+                dot.style.boxShadow = '0 0 8px #4CAF50';
+                setTimeout(() => dot.style.boxShadow = '', 1000);
+            }
+            
+            console.log(`✅ UI updated for ${controlId}: ${control.level}% (${control.power ? 'ON' : 'OFF'})`);
+            
+        } catch (error) {
+            console.error(`❌ Error updating DALI display ${controlId}:`, error);
+        }
     }
     
     /**
