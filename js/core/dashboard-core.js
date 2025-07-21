@@ -1,5 +1,5 @@
 /**
- * AMAN Venice - Dashboard Core System
+ * AMAN Venice - Dashboard Core System (COMPLETO E AGGIORNATO)
  * Sistema base modulare per dashboard camere
  * 
  * Funzionalità:
@@ -9,6 +9,8 @@
  * - Coordinamento moduli
  * - Parser messaggi clima MQTT
  * - Parser messaggi DALI MQTT (IMPLEMENTATO)
+ * - CONTROLLI DALI MIGLIORATI: Range 10-100%, setLevel separato
+ * - CONTROLLI TERMOSTATO MIGLIORATI: Step 0.5°C
  */
 
 class AmanDashboardCore {
@@ -20,7 +22,7 @@ class AmanDashboardCore {
         this.mqttManager = null;
         this.controls = new Map();
         
-        console.log('🏨 AMAN Venice Dashboard Core inizializzato');
+        console.log('🏨 AMAN Venice Dashboard Core inizializzato (v2.0 - DALI + Termostato)');
     }
     
     /**
@@ -388,7 +390,7 @@ class AmanDashboardCore {
     }
     
     /**
-     * Caricamento controllo singolo
+     * Caricamento controllo singolo - AGGIORNATO
      */
     async loadControl(containerId, config, section) {
         try {
@@ -405,10 +407,12 @@ class AmanDashboardCore {
                 config: config
             };
             
-            // Inizializzazione in base al tipo
+            // Inizializzazione in base al tipo - AGGIORNATA
             switch (config.type) {
                 case 'dali':
+                    // MIGLIORATO: Gestione separata level e setLevel
                     control.level = config.initialPower ? config.initialLevel : 0;
+                    control.setLevel = config.initialLevel; // setLevel sempre mantiene il valore impostato
                     control.power = config.initialPower;
                     control.locale = section === 'bedroom' ? 'Camera' : 
                                    section === 'bathroom' ? 'Bagno' : 'Soggiorno';
@@ -425,8 +429,9 @@ class AmanDashboardCore {
                     break;
                     
                 case 'thermostat':
-                    control.temperature = config.initialTemp || 22;
-                    control.measuredTemp = config.measuredTemp || 20.0;
+                    // MIGLIORATO: Arrotondamento a step 0.5°C
+                    control.temperature = Math.round((config.initialTemp || 22) * 2) / 2;
+                    control.measuredTemp = Math.round((config.measuredTemp || 20.0) * 2) / 2;
                     control.power = config.initialPower || false;
                     control.minTemp = config.minTemp || 16;
                     control.maxTemp = config.maxTemp || 28;
@@ -508,7 +513,7 @@ class AmanDashboardCore {
     }
     
     /**
-     * Gestione messaggi DALI - IMPLEMENTAZIONE COMPLETA
+     * Gestione messaggi DALI - IMPLEMENTAZIONE COMPLETA E MIGLIORATA
      */
     handleDALIMessage(jsonData) {
         try {
@@ -543,7 +548,7 @@ class AmanDashboardCore {
     }
     
     /**
-     * Aggiornamento luci Camera (Bedroom) da MQTT
+     * Aggiornamento luci Camera (Bedroom) da MQTT - MIGLIORATO
      */
     updateBedroomLightsFromMQTT(jsonData) {
         try {
@@ -580,7 +585,7 @@ class AmanDashboardCore {
     }
     
     /**
-     * Aggiornamento luci Bagno (Bathroom) da MQTT
+     * Aggiornamento luci Bagno (Bathroom) da MQTT - MIGLIORATO
      */
     updateBathroomLightsFromMQTT(jsonData) {
         try {
@@ -618,7 +623,7 @@ class AmanDashboardCore {
     }
     
     /**
-     * Aggiornamento luci Soggiorno (Living Room) da MQTT
+     * Aggiornamento luci Soggiorno (Living Room) da MQTT - MIGLIORATO
      */
     updateLivingRoomLightsFromMQTT(jsonData) {
         try {
@@ -653,7 +658,7 @@ class AmanDashboardCore {
     }
     
     /**
-     * Aggiornamento singolo controllo DALI da MQTT
+     * Aggiornamento singolo controllo DALI da MQTT - MIGLIORATO
      */
     updateDALIControlFromMQTT(controlId, level) {
         try {
@@ -673,12 +678,17 @@ class AmanDashboardCore {
             // Validazione livello
             const validLevel = Math.max(0, Math.min(100, Math.round(level)));
             
-            // Aggiorna dati controllo
+            // Aggiorna dati controllo - MIGLIORATO con setLevel
             const oldLevel = control.level;
             const oldPower = control.power;
             
             control.level = validLevel;
             control.power = validLevel > 0;
+            
+            // NUOVO: Aggiorna anche setLevel quando arriva da MQTT
+            if (validLevel > 0) {
+                control.setLevel = validLevel;
+            }
             
             // Log cambiamento
             if (oldLevel !== validLevel || oldPower !== control.power) {
@@ -697,10 +707,15 @@ class AmanDashboardCore {
     }
     
     /**
-     * Aggiornamento display DALI da MQTT (senza loop MQTT)
+     * Aggiornamento display DALI da MQTT (senza loop MQTT) - MIGLIORATO
      */
     updateDALIDisplayFromMQTT(controlId, control) {
         try {
+            // Inizializza setLevel se non esiste
+            if (!control.setLevel) {
+                control.setLevel = control.level;
+            }
+            
             // Update level display
             const display = document.getElementById(`${controlId}_display`);
             if (display) {
@@ -713,12 +728,13 @@ class AmanDashboardCore {
                 setTimeout(() => display.style.border = '', 1000);
             }
             
-            // Update slider
+            // Update slider (mostra setLevel, non level corrente)
             const fill = document.getElementById(`${controlId}_fill`);
             const thumb = document.getElementById(`${controlId}_thumb`);
             if (fill && thumb) {
-                fill.style.width = control.level + '%';
-                thumb.style.left = `calc(${control.level}% - 12px)`;
+                const displayLevel = control.setLevel;
+                fill.style.width = displayLevel + '%';
+                thumb.style.left = `calc(${displayLevel}% - 12px)`;
                 thumb.classList.toggle('active', control.power);
                 
                 // Visual feedback
@@ -730,8 +746,7 @@ class AmanDashboardCore {
             const onBtn = document.getElementById(`${controlId}_on`);
             const offBtn = document.getElementById(`${controlId}_off`);
             if (onBtn && offBtn) {
-                onBtn.classList.toggle('on-active', control.power);
-                onBtn.classList.toggle('active', false);
+                onBtn.classList.toggle('active', control.power);
                 offBtn.classList.toggle('active', !control.power);
                 
                 // Visual feedback on state change
@@ -740,20 +755,7 @@ class AmanDashboardCore {
                 setTimeout(() => activeBtn.style.boxShadow = '', 1000);
             }
             
-            // Update status
-            const dot = document.getElementById(`${controlId}_dot`);
-            const status = document.getElementById(`${controlId}_status`);
-            if (dot && status) {
-                dot.classList.toggle('on', control.power);
-                dot.classList.toggle('off', !control.power);
-                status.textContent = control.power ? 'Lights On' : 'Lights Off';
-                
-                // Visual feedback
-                dot.style.boxShadow = '0 0 8px #4CAF50';
-                setTimeout(() => dot.style.boxShadow = '', 1000);
-            }
-            
-            console.log(`✅ UI updated for ${controlId}: ${control.level}% (${control.power ? 'ON' : 'OFF'})`);
+            console.log(`✅ UI updated for ${controlId}: ${control.level}% (${control.power ? 'ON' : 'OFF'}) setLevel: ${control.setLevel}%`);
             
         } catch (error) {
             console.error(`❌ Error updating DALI display ${controlId}:`, error);
@@ -761,7 +763,7 @@ class AmanDashboardCore {
     }
     
     /**
-     * Gestione messaggi Clima
+     * Gestione messaggi Clima - MIGLIORATO
      */
     handleClimateMessage(jsonData) {
         try {
@@ -797,6 +799,21 @@ class AmanDashboardCore {
                 console.log(`🚿 Bagno climate updated:`, bagnoClimate);
             }
             
+            // Parse soggiorno climate data (se presente)
+            if (jsonData.hasOwnProperty('nSoggiornoMis') && jsonData.hasOwnProperty('nSoggiornoSet')) {
+                const soggiornoClimate = {
+                    measuredTemp: this.convertTemperature(jsonData.nSoggiornoMis),
+                    setpointTemp: this.convertTemperature(jsonData.nSoggiornoSet),
+                    ventilation: jsonData.nSoggiornoVen || 0,
+                    heating: jsonData.nSoggiornoCal || 0,
+                    cooling: jsonData.nSoggiornoFre || 0,
+                    isOn: jsonData.nSoggiornoSet > 0
+                };
+                
+                this.updateThermostatFromMQTT('living', soggiornoClimate);
+                console.log(`🏛️ Soggiorno climate updated:`, soggiornoClimate);
+            }
+            
             this.logToConsole('info', 'Climate Updated', `Room ${jsonData.nCamera} climate data processed`);
             
         } catch (error) {
@@ -806,17 +823,19 @@ class AmanDashboardCore {
     }
     
     /**
-     * Conversione temperatura (divide per 10)
+     * Conversione temperatura (divide per 10) - MIGLIORATO
      */
     convertTemperature(rawValue) {
         if (rawValue === null || rawValue === undefined || isNaN(rawValue)) {
             return 20.0; // Default temperature
         }
-        return Math.round((rawValue / 10) * 10) / 10; // Round to 1 decimal
+        // Arrotonda a step 0.5°C
+        const tempValue = rawValue / 10;
+        return Math.round(tempValue * 2) / 2; // Round to 0.5°C step
     }
     
     /**
-     * Aggiorna thermostat da messaggio MQTT
+     * Aggiorna thermostat da messaggio MQTT - MIGLIORATO
      */
     updateThermostatFromMQTT(section, climateData) {
         try {
@@ -831,9 +850,9 @@ class AmanDashboardCore {
             
             const thermostatControl = controls[0];
             
-            // Aggiorna dati controllo
-            thermostatControl.temperature = climateData.setpointTemp;
-            thermostatControl.measuredTemp = climateData.measuredTemp;
+            // Aggiorna dati controllo - MIGLIORATO con step 0.5°C
+            thermostatControl.temperature = Math.round(climateData.setpointTemp * 2) / 2;
+            thermostatControl.measuredTemp = Math.round(climateData.measuredTemp * 2) / 2;
             thermostatControl.power = climateData.isOn;
             
             // Determina stato (heating/cooling/neutral)
@@ -948,7 +967,7 @@ class AmanDashboardCore {
             roomNameStatus: `Room ${this.roomNumber}`,
             lastUpdate: this.lastUpdateTime,
             infoTitle: `AMAN Venice - Room ${this.roomNumber}`,
-            infoVersion: `Room ${this.roomNumber} v1.0`,
+            infoVersion: `Room ${this.roomNumber} v2.0 (DALI + Termostato)`,
             loginTitle: `Room ${this.roomNumber} Control`,
             loadingText: `Initializing Room ${this.roomNumber} Dashboard`,
             consoleTitle: `📡 MQTT Console - Room ${this.roomNumber}`

@@ -1,5 +1,5 @@
 /**
- * AMAN Venice - Room Manager
+ * AMAN Venice - Room Manager (COMPLETO E AGGIORNATO)
  * Gestione layout e navigazione delle room
  * 
  * Funzionalità:
@@ -7,6 +7,8 @@
  * - Gestione tab navigation
  * - Coordinamento tra sezioni
  * - Integrazione con dashboard core
+ * - CONTROLLI DALI MIGLIORATI: Range 10-100%, colori verdi, slider fluido
+ * - CONTROLLI TERMOSTATO MIGLIORATI: Step 0.5°C, stati visuali, drag fluido
  */
 
 class AmanRoomManager {
@@ -15,7 +17,7 @@ class AmanRoomManager {
         this.activeTab = null;
         this.loadedSections = new Set();
         
-        console.log('🏠 AMAN Room Manager inizializzato');
+        console.log('🏠 AMAN Room Manager inizializzato (v2.0 - DALI + Termostato)');
     }
     
     /**
@@ -209,35 +211,41 @@ class AmanRoomManager {
     }
     
     /**
-     * Generazione HTML controllo DALI
+     * Generazione HTML controllo DALI - VERSIONE MIGLIORATA
      */
     generateDALIControlHTML(controlId, control) {
         const isOn = control.initialPower;
         const level = isOn ? control.initialLevel : 0;
+        const setLevel = control.initialLevel; // Mantieni setLevel sempre visibile
         
         return `
             <div class="dali-controller" id="${controlId}_controller">
+                <!-- LABEL NOME GRUPPO -->
                 <div class="group-label uniform-element">${control.name}</div>
                 
+                <!-- CONTROLLI PRINCIPALI: LIVELLO + ON/OFF -->
                 <div class="main-controls">
+                    <!-- VISUALIZZAZIONE LIVELLO CORRENTE -->
                     <div class="level-display">
                         <div class="level-value uniform-element ${isOn ? 'on' : 'off'}" id="${controlId}_display">
                             ${level}<span class="level-unit">%</span>
                         </div>
                     </div>
                     
+                    <!-- COMANDO ON/OFF con colori verdi -->
                     <div class="power-controls">
                         <button class="power-btn uniform-element ${!isOn ? 'active' : ''}" id="${controlId}_off" onclick="window.roomControls.setDALIPower('${controlId}', 'off')">OFF</button>
-                        <button class="power-btn uniform-element ${isOn ? 'on-active' : ''}" id="${controlId}_on" onclick="window.roomControls.setDALIPower('${controlId}', 'on')">ON</button>
+                        <button class="power-btn uniform-element ${isOn ? 'active' : ''}" id="${controlId}_on" onclick="window.roomControls.setDALIPower('${controlId}', 'on')">ON</button>
                     </div>
                 </div>
                 
+                <!-- SLIDER IMPOSTAZIONE LIVELLO -->
                 <div class="level-control">
-                    <div class="level-label">Light Level Setting</div>
+                    <div class="level-label">Impostazione Livello</div>
                     <div class="level-slider-container">
-                        <div class="level-slider" onclick="window.roomControls.adjustDALILevel(event, '${controlId}')">
-                            <div class="level-fill" id="${controlId}_fill" style="width: ${level}%"></div>
-                            <div class="level-thumb ${isOn ? 'active' : ''}" id="${controlId}_thumb" style="left: calc(${level}% - 12px)"></div>
+                        <div class="level-slider" id="${controlId}_slider" onclick="window.roomControls.adjustDALILevel(event, '${controlId}')">
+                            <div class="level-fill" id="${controlId}_fill" style="width: ${setLevel}%"></div>
+                            <div class="level-thumb ${setLevel > 0 ? 'active' : ''}" id="${controlId}_thumb" style="left: calc(${setLevel}% - 12px)"></div>
                         </div>
                         <div class="slider-scale">
                             <span>0%</span>
@@ -245,16 +253,135 @@ class AmanRoomManager {
                             <span>50%</span>
                             <span>75%</span>
                             <span>100%</span>
+                            <div class="min-indicator">min</div>
                         </div>
                     </div>
                 </div>
                 
-                <div class="status-indicator">
-                    <div class="status-dot ${isOn ? 'on' : 'off'}" id="${controlId}_dot"></div>
-                    <span id="${controlId}_status">${isOn ? 'Lights On' : 'Lights Off'}</span>
+                <!-- STATUS INDICATOR RIMOSSO per DALI -->
+            </div>
+        `;
+    }
+    
+    /**
+     * Generazione HTML controllo TERMOSTATO - VERSIONE MIGLIORATA
+     */
+    generateThermostatControlHTML(controlId, control) {
+        const isOn = control.initialPower;
+        const temp = control.initialTemp || 22;
+        const measuredTemp = control.measuredTemp || 20.0;
+        const minTemp = control.minTemp || 16;
+        const maxTemp = control.maxTemp || 28;
+        
+        // Calcola percentuale per slider con step 0.5°C
+        const tempRange = maxTemp - minTemp;
+        const tempSteps = tempRange * 2; // 0.5°C steps
+        const normalizedTemp = Math.round((temp - minTemp) * 2) / 2; // Arrotonda a 0.5
+        const percentage = (normalizedTemp / tempRange) * 100;
+        
+        // Determina stato iniziale basato su differenza temperatura
+        const tempDiff = temp - measuredTemp;
+        let initialState = 'neutral';
+        if (isOn) {
+            if (tempDiff > 1) initialState = 'heating';
+            else if (tempDiff < -1) initialState = 'cooling';
+        } else {
+            initialState = 'off';
+        }
+        
+        return `
+            <div class="thermostat-controller" id="${controlId}_controller">
+                <!-- LABEL NOME GRUPPO -->
+                <div class="group-label uniform-element">${control.name}</div>
+                
+                <!-- CONTROLLI PRINCIPALI: TEMPERATURA + ON/OFF -->
+                <div class="main-controls">
+                    <!-- DISPLAY TEMPERATURE -->
+                    <div class="level-display">
+                        <div class="temperature-display-container">
+                            <!-- SETPOINT TEMPERATURE -->
+                            <div class="level-value uniform-element setpoint ${isOn ? 'on' : 'off'}" id="${controlId}_display">
+                                ${temp}<span class="level-unit">°C</span>
+                            </div>
+                            <!-- MEASURED TEMPERATURE -->
+                            <div class="measured-temp-container ${initialState}" id="${controlId}_measured_container">
+                                <div class="measured-temp-label">Misurata</div>
+                                <div class="measured-temp-value" id="${controlId}_measured">
+                                    ${measuredTemp}<span class="measured-unit">°C</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- COMANDO ON/OFF con colori verdi -->
+                    <div class="power-controls">
+                        <button class="power-btn uniform-element ${!isOn ? 'active' : ''}" id="${controlId}_off" onclick="window.roomControls.setThermostatPower('${controlId}', 'off')">OFF</button>
+                        <button class="power-btn uniform-element ${isOn ? 'active' : ''}" id="${controlId}_on" onclick="window.roomControls.setThermostatPower('${controlId}', 'on')">ON</button>
+                    </div>
+                </div>
+                
+                <!-- CONTROLLO TEMPERATURA -->
+                <div class="level-control">
+                    <div class="level-label">Impostazione Temperatura</div>
+                    <div class="level-slider-container">
+                        <!-- PULSANTE DIMINUISCI -->
+                        <button class="temp-btn decrease" id="${controlId}_decrease" onclick="window.roomControls.adjustThermostatStep('${controlId}', -0.5)">−</button>
+                        
+                        <!-- SLIDER TEMPERATURA -->
+                        <div class="temp-slider" id="${controlId}_slider" onclick="window.roomControls.adjustThermostatLevel(event, '${controlId}')">
+                            <div class="level-fill" id="${controlId}_fill" style="width: ${percentage}%"></div>
+                            <div class="level-thumb ${isOn ? 'active' : ''}" id="${controlId}_thumb" style="left: calc(${percentage}% - 12px)"></div>
+                        </div>
+                        
+                        <!-- PULSANTE AUMENTA -->
+                        <button class="temp-btn increase" id="${controlId}_increase" onclick="window.roomControls.adjustThermostatStep('${controlId}', 0.5)">+</button>
+                    </div>
+                    
+                    <!-- SCALA TEMPERATURE -->
+                    <div class="slider-scale">
+                        <span>${minTemp}°</span>
+                        <span>${Math.round(minTemp + tempRange * 0.25)}°</span>
+                        <span>${Math.round(minTemp + tempRange * 0.5)}°</span>
+                        <span>${Math.round(minTemp + tempRange * 0.75)}°</span>
+                        <span>${maxTemp}°</span>
+                    </div>
+                </div>
+                
+                <!-- STATUS CLIMATIZZAZIONE -->
+                <div class="climate-status">
+                    <div class="climate-indicator ${initialState}" id="${controlId}_climate_indicator">
+                        <div class="climate-icon" id="${controlId}_climate_icon">${this.getClimateIcon(initialState)}</div>
+                        <span id="${controlId}_climate_status">${this.getClimateStatusText(initialState)}</span>
+                    </div>
                 </div>
             </div>
         `;
+    }
+    
+    /**
+     * Metodo helper per icona clima
+     */
+    getClimateIcon(state) {
+        switch(state) {
+            case 'heating': return '🔥';
+            case 'cooling': return '❄️'; 
+            case 'neutral': return '✅';
+            case 'off': return '🌡️';
+            default: return '🌡️';
+        }
+    }
+    
+    /**
+     * Metodo helper per testo status clima
+     */
+    getClimateStatusText(state) {
+        switch(state) {
+            case 'heating': return 'Riscaldamento';
+            case 'cooling': return 'Raffreddamento'; 
+            case 'neutral': return 'Temperatura OK';
+            case 'off': return 'Spento';
+            default: return 'Standby';
+        }
     }
     
     /**
@@ -284,74 +411,6 @@ class AmanRoomManager {
                 <div class="status-indicator">
                     <div class="status-dot ${isActive ? 'active' : 'inactive'}" id="${controlId}_dot"></div>
                     <span id="${controlId}_status">${isActive ? 'Online' : 'Offline'}</span>
-                </div>
-            </div>
-        `;
-    }
-    
-    /**
-     * Generazione HTML controllo Thermostat
-     */
-    generateThermostatControlHTML(controlId, control) {
-        const isOn = control.initialPower;
-        const temp = control.initialTemp || 22;
-        const measuredTemp = control.measuredTemp || 20.0;
-        const minTemp = control.minTemp || 16;
-        const maxTemp = control.maxTemp || 28;
-        
-        // Calcola percentuale per slider
-        const tempRange = maxTemp - minTemp;
-        const percentage = ((temp - minTemp) / tempRange) * 100;
-        
-        return `
-            <div class="dali-controller" id="${controlId}_controller">
-                <div class="group-label uniform-element">${control.name}</div>
-                
-                <div class="main-controls">
-                    <div class="level-display">
-                        <div class="temperature-display-container">
-                            <div class="level-value uniform-element setpoint ${isOn ? 'on' : 'off'}" id="${controlId}_display">
-                                ${temp}<span class="level-unit">°C</span>
-                            </div>
-                            <div class="measured-temp-container ${isOn ? 'neutral' : 'off'}" id="${controlId}_measured_container">
-                                <div class="measured-temp-label">Actual</div>
-                                <div class="measured-temp-value" id="${controlId}_measured">
-                                    ${measuredTemp}<span class="measured-unit">°C</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="power-controls">
-                        <button class="power-btn uniform-element ${!isOn ? 'active' : ''}" id="${controlId}_off" onclick="window.roomControls.setThermostatPower('${controlId}', 'off')">OFF</button>
-                        <button class="power-btn uniform-element ${isOn ? 'on-active' : ''}" id="${controlId}_on" onclick="window.roomControls.setThermostatPower('${controlId}', 'on')">ON</button>
-                    </div>
-                </div>
-                
-                <div class="level-control">
-                    <div class="level-label">Temperature Setting</div>
-                    <div class="level-slider-container">
-                        <button class="level-btn" id="${controlId}_decrease" onclick="window.roomControls.adjustThermostatStep('${controlId}', -1)">−</button>
-                        
-                        <div class="level-slider" onclick="window.roomControls.adjustThermostatLevel(event, '${controlId}')">
-                            <div class="level-fill" id="${controlId}_fill" style="width: ${percentage}%"></div>
-                            <div class="level-thumb ${isOn ? 'active' : ''}" id="${controlId}_thumb" style="left: calc(${percentage}% - 12px)"></div>
-                        </div>
-                        
-                        <button class="level-btn" id="${controlId}_increase" onclick="window.roomControls.adjustThermostatStep('${controlId}', 1)">+</button>
-                    </div>
-                    <div class="slider-scale">
-                        <span>${minTemp}°</span>
-                        <span>${Math.round(minTemp + tempRange * 0.25)}°</span>
-                        <span>${Math.round(minTemp + tempRange * 0.5)}°</span>
-                        <span>${Math.round(minTemp + tempRange * 0.75)}°</span>
-                        <span>${maxTemp}°</span>
-                    </div>
-                </div>
-                
-                <div class="status-indicator">
-                    <div class="status-dot ${isOn ? 'on' : 'off'}" id="${controlId}_dot"></div>
-                    <span id="${controlId}_status">${isOn ? 'Climate On' : 'Climate Off'}</span>
                 </div>
             </div>
         `;
@@ -397,10 +456,242 @@ class AmanRoomManager {
             const coreControl = this.dashboardCore.getControl(controlId);
             if (coreControl) {
                 console.log(`🔧 Control ${controlId} inizializzato`);
+                
+                // Setup eventi drag migliorati per controlli DALI
+                if (control.type === 'dali') {
+                    this.setupDALISliderEvents(controlId);
+                }
+                
+                // Setup eventi drag migliorati per controlli TERMOSTATO
+                if (control.type === 'thermostat') {
+                    this.setupThermostatSliderEvents(controlId);
+                }
             }
         }
         
         this.loadedSections.add(sectionId);
+    }
+    
+    /**
+     * Setup eventi drag migliorati per slider DALI
+     */
+    setupDALISliderEvents(controlId) {
+        const thumb = document.getElementById(`${controlId}_thumb`);
+        const slider = document.getElementById(`${controlId}_slider`);
+        
+        if (!thumb || !slider) return;
+        
+        let isDragging = false;
+        let dragOffset = 0;
+        
+        // Mousedown sul thumb
+        thumb.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            
+            // Calcola l'offset del click rispetto al centro del thumb
+            const thumbRect = thumb.getBoundingClientRect();
+            dragOffset = e.clientX - (thumbRect.left + thumbRect.width / 2);
+            
+            thumb.classList.add('dragging');
+            document.body.classList.add('no-select');
+            
+            e.preventDefault();
+            e.stopPropagation();
+        });
+        
+        // Click diretto sullo slider (non sul thumb)
+        slider.addEventListener('click', (e) => {
+            if (e.target === thumb) return; // Ignora se il click è sul thumb
+            if (window.roomControls && window.roomControls.adjustDALILevel) {
+                window.roomControls.adjustDALILevel(e, controlId);
+            }
+        });
+        
+        // Gestione drag globale
+        const handleMouseMove = (e) => {
+            if (!isDragging) return;
+            
+            const rect = slider.getBoundingClientRect();
+            const adjustedX = e.clientX - dragOffset;
+            let percentage = Math.max(0, Math.min(100, Math.round(((adjustedX - rect.left) / rect.width) * 100)));
+            
+            // Applica range 10-100%
+            if (percentage > 0 && percentage < 10) {
+                percentage = 10;
+            }
+            
+            // Aggiorna controllo
+            if (window.roomControls && window.roomControls.updateDALILevelDirect) {
+                window.roomControls.updateDALILevelDirect(controlId, percentage);
+            }
+            
+            e.preventDefault();
+        };
+        
+        const handleMouseUp = () => {
+            if (isDragging) {
+                isDragging = false;
+                thumb.classList.remove('dragging');
+                document.body.classList.remove('no-select');
+            }
+        };
+        
+        // Event listeners globali
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+        
+        // Supporto touch
+        thumb.addEventListener('touchstart', (e) => {
+            isDragging = true;
+            
+            const thumbRect = thumb.getBoundingClientRect();
+            const touch = e.touches[0];
+            dragOffset = touch.clientX - (thumbRect.left + thumbRect.width / 2);
+            
+            thumb.classList.add('dragging');
+            document.body.classList.add('no-select');
+            
+            e.preventDefault();
+        });
+        
+        document.addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+            
+            const rect = slider.getBoundingClientRect();
+            const touch = e.touches[0];
+            const adjustedX = touch.clientX - dragOffset;
+            let percentage = Math.max(0, Math.min(100, Math.round(((adjustedX - rect.left) / rect.width) * 100)));
+            
+            // Applica range 10-100%
+            if (percentage > 0 && percentage < 10) {
+                percentage = 10;
+            }
+            
+            // Aggiorna controllo
+            if (window.roomControls && window.roomControls.updateDALILevelDirect) {
+                window.roomControls.updateDALILevelDirect(controlId, percentage);
+            }
+            
+            e.preventDefault();
+        });
+        
+        document.addEventListener('touchend', handleMouseUp);
+        
+        console.log(`✅ Setup drag events DALI per ${controlId}`);
+    }
+    
+    /**
+     * Setup eventi drag migliorati per slider Termostato
+     */
+    setupThermostatSliderEvents(controlId) {
+        const thumb = document.getElementById(`${controlId}_thumb`);
+        const slider = document.getElementById(`${controlId}_slider`);
+        
+        if (!thumb || !slider) return;
+        
+        let isDragging = false;
+        let dragOffset = 0;
+        
+        // Mousedown sul thumb
+        thumb.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            
+            // Calcola l'offset del click rispetto al centro del thumb
+            const thumbRect = thumb.getBoundingClientRect();
+            dragOffset = e.clientX - (thumbRect.left + thumbRect.width / 2);
+            
+            thumb.classList.add('dragging');
+            document.body.classList.add('no-select');
+            
+            e.preventDefault();
+            e.stopPropagation();
+        });
+        
+        // Click diretto sullo slider (non sul thumb)
+        slider.addEventListener('click', (e) => {
+            if (e.target === thumb) return; // Ignora se il click è sul thumb
+            if (window.roomControls && window.roomControls.adjustThermostatLevel) {
+                window.roomControls.adjustThermostatLevel(e, controlId);
+            }
+        });
+        
+        // Gestione drag globale
+        const handleMouseMove = (e) => {
+            if (!isDragging) return;
+            
+            const rect = slider.getBoundingClientRect();
+            const adjustedX = e.clientX - dragOffset;
+            let percentage = Math.max(0, Math.min(100, ((adjustedX - rect.left) / rect.width) * 100));
+            
+            // Converti in temperatura con step 0.5°C
+            const control = window.AmanAPI.getCore().getControl(controlId);
+            if (control) {
+                const tempRange = control.maxTemp - control.minTemp;
+                const rawTemp = control.minTemp + (percentage / 100) * tempRange;
+                const newTemp = Math.round(rawTemp * 2) / 2; // Step 0.5°C
+                
+                // Aggiorna controllo direttamente
+                if (window.roomControls && window.roomControls.updateThermostatTemperatureDirect) {
+                    window.roomControls.updateThermostatTemperatureDirect(controlId, newTemp);
+                }
+            }
+            
+            e.preventDefault();
+        };
+        
+        const handleMouseUp = () => {
+            if (isDragging) {
+                isDragging = false;
+                thumb.classList.remove('dragging');
+                document.body.classList.remove('no-select');
+            }
+        };
+        
+        // Event listeners globali
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+        
+        // Supporto touch
+        thumb.addEventListener('touchstart', (e) => {
+            isDragging = true;
+            
+            const thumbRect = thumb.getBoundingClientRect();
+            const touch = e.touches[0];
+            dragOffset = touch.clientX - (thumbRect.left + thumbRect.width / 2);
+            
+            thumb.classList.add('dragging');
+            document.body.classList.add('no-select');
+            
+            e.preventDefault();
+        });
+        
+        document.addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+            
+            const rect = slider.getBoundingClientRect();
+            const touch = e.touches[0];
+            const adjustedX = touch.clientX - dragOffset;
+            let percentage = Math.max(0, Math.min(100, ((adjustedX - rect.left) / rect.width) * 100));
+            
+            // Converti in temperatura con step 0.5°C
+            const control = window.AmanAPI.getCore().getControl(controlId);
+            if (control) {
+                const tempRange = control.maxTemp - control.minTemp;
+                const rawTemp = control.minTemp + (percentage / 100) * tempRange;
+                const newTemp = Math.round(rawTemp * 2) / 2; // Step 0.5°C
+                
+                // Aggiorna controllo direttamente
+                if (window.roomControls && window.roomControls.updateThermostatTemperatureDirect) {
+                    window.roomControls.updateThermostatTemperatureDirect(controlId, newTemp);
+                }
+            }
+            
+            e.preventDefault();
+        });
+        
+        document.addEventListener('touchend', handleMouseUp);
+        
+        console.log(`✅ Setup drag events termostato per ${controlId}`);
     }
     
     /**

@@ -1,17 +1,17 @@
-case 'thermostat':
-                    this.setThermostatPower(control.id, 'on');
-                    setTimeout(() => this.adjustThermostatStep(control.id, 2), 1000);
-                    setTimeout(() => this.adjustThermostatStep(control.id, -2), 2000);
-                    setTimeout(() => this.setThermostatPower(control.id, 'off'), 3000);
-                    break;/**
- * AMAN Venice - Control Factory
+/**
+ * AMAN Venice - Control Factory (COMPLETO E AGGIORNATO)
  * Gestione funzionalità controlli dinamici
  * 
  * Funzionalità:
- * - Controlli DALI (luci)
+ * - Controlli DALI (luci) - MIGLIORATI
+ * - Controlli Termostato - MIGLIORATI
  * - Controlli On/Off
  * - Controlli Monostable
  * - Integrazione MQTT
+ * - Range DALI 10-100% con visualizzazione 0-100%
+ * - Gestione separata setLevel per DALI
+ * - Step 0.5°C per termostato
+ * - Slider senza oscillazioni
  */
 
 class AmanControlFactory {
@@ -19,7 +19,7 @@ class AmanControlFactory {
         this.dashboardCore = dashboardCore;
         this.activeControls = new Map();
         
-        console.log('🎛️ AMAN Control Factory inizializzato');
+        console.log('🎛️ AMAN Control Factory inizializzato (v2.0 - DALI + Termostato)');
     }
     
     /**
@@ -40,19 +40,21 @@ class AmanControlFactory {
     }
     
     /**
-     * Setup API globale
+     * Setup API globale - AGGIORNATA
      */
     setupGlobalAPI() {
         window.roomControls = {
-            // DALI Controls
+            // DALI Controls - MIGLIORATI
             setDALIPower: (controlId, state) => this.setDALIPower(controlId, state),
             adjustDALILevel: (event, controlId) => this.adjustDALILevel(event, controlId),
+            updateDALILevelDirect: (controlId, level) => this.updateDALILevelDirect(controlId, level),
             
-            // Thermostat Controls
+            // Thermostat Controls - MIGLIORATI
             setThermostatPower: (controlId, state) => this.setThermostatPower(controlId, state),
             adjustThermostatLevel: (event, controlId) => this.adjustThermostatLevel(event, controlId),
             adjustThermostatStep: (controlId, step) => this.adjustThermostatStep(controlId, step),
             updateThermostatFromMQTT: (controlId, control) => this.updateThermostatFromMQTT(controlId, control),
+            updateThermostatTemperatureDirect: (controlId, newTemp) => this.updateThermostatTemperatureDirect(controlId, newTemp),
             
             // On/Off Controls
             toggleOnOff: (controlId) => this.toggleOnOff(controlId),
@@ -67,11 +69,11 @@ class AmanControlFactory {
     }
     
     /**
-     * ===== DALI CONTROLS =====
+     * ===== DALI CONTROLS - VERSIONE MIGLIORATA =====
      */
     
     /**
-     * Set DALI Power (On/Off)
+     * Set DALI Power (On/Off) - MIGLIORATO
      */
     setDALIPower(controlId, state) {
         try {
@@ -84,16 +86,27 @@ class AmanControlFactory {
             const isOn = state === 'on';
             control.power = isOn;
             
+            // Inizializza setLevel se non esiste
+            if (!control.setLevel) {
+                control.setLevel = control.level || 50;
+            }
+            
+            // Gestione setLevel separato
             if (!isOn) {
+                // Quando spento, il display mostra 0 ma setLevel rimane invariato
                 control.level = 0;
-            } else if (control.level === 0) {
-                control.level = 50; // Default level
+            } else {
+                // Quando acceso, usa il setLevel memorizzato
+                if (control.setLevel === 0) {
+                    control.setLevel = 50; // Default level
+                }
+                control.level = control.setLevel;
             }
             
             this.updateDALIDisplay(controlId, control);
             this.sendDALICommand(control);
             
-            console.log(`💡 DALI Power ${controlId}: ${state} (${control.level}%)`);
+            console.log(`💡 DALI Power ${controlId}: ${state} (setLevel: ${control.setLevel}%, display: ${control.level}%)`);
             
         } catch (error) {
             console.error(`❌ Error setting DALI power ${controlId}:`, error);
@@ -101,7 +114,7 @@ class AmanControlFactory {
     }
     
     /**
-     * Adjust DALI Level (Slider)
+     * Adjust DALI Level (Slider Click) - MIGLIORATO
      */
     adjustDALILevel(event, controlId) {
         try {
@@ -113,15 +126,14 @@ class AmanControlFactory {
             
             const slider = event.currentTarget;
             const rect = slider.getBoundingClientRect();
-            const percentage = Math.max(0, Math.min(100, Math.round(((event.clientX - rect.left) / rect.width) * 100)));
+            let percentage = Math.max(0, Math.min(100, Math.round(((event.clientX - rect.left) / rect.width) * 100)));
             
-            control.level = percentage;
-            control.power = percentage > 0;
+            // Applica range 10-100%
+            if (percentage > 0 && percentage < 10) {
+                percentage = 10;
+            }
             
-            this.updateDALIDisplay(controlId, control);
-            this.sendDALICommand(control);
-            
-            console.log(`🎛️ DALI Level ${controlId}: ${percentage}%`);
+            this.updateDALILevelDirect(controlId, percentage);
             
         } catch (error) {
             console.error(`❌ Error adjusting DALI level ${controlId}:`, error);
@@ -129,56 +141,107 @@ class AmanControlFactory {
     }
     
     /**
-     * Update DALI Display
+     * Update DALI Level Direct (per drag e click) - NUOVO
+     */
+    updateDALILevelDirect(controlId, percentage) {
+        try {
+            const control = this.dashboardCore.getControl(controlId);
+            if (!control) {
+                console.error(`❌ Control ${controlId} not found`);
+                return;
+            }
+            
+            // Validazione range
+            if (percentage > 0 && percentage < 10) {
+                percentage = 10;
+            }
+            
+            // Inizializza setLevel se non esiste
+            if (!control.setLevel) {
+                control.setLevel = 0;
+            }
+            
+            // Aggiorna setLevel (sempre)
+            control.setLevel = percentage;
+            
+            // Auto power management
+            if (percentage > 0 && !control.power) {
+                control.power = true;
+                control.level = percentage;
+                this.updateDALIPowerButtons(controlId, true);
+            } else if (percentage === 0) {
+                control.power = false;
+                control.level = 0;
+                this.updateDALIPowerButtons(controlId, false);
+            } else if (control.power) {
+                control.level = percentage;
+            }
+            
+            this.updateDALIDisplay(controlId, control);
+            this.sendDALICommand(control);
+            
+            console.log(`🎛️ DALI Level Direct ${controlId}: ${percentage}% (power: ${control.power})`);
+            
+        } catch (error) {
+            console.error(`❌ Error updating DALI level direct ${controlId}:`, error);
+        }
+    }
+    
+    /**
+     * Update DALI Display - MIGLIORATO
      */
     updateDALIDisplay(controlId, control) {
         try {
-            // Update level display
+            // Inizializza setLevel se non esiste
+            if (!control.setLevel) {
+                control.setLevel = control.level || 0;
+            }
+            
+            // Update level display (mostra level corrente, non setLevel)
             const display = document.getElementById(`${controlId}_display`);
             if (display) {
                 display.innerHTML = `${control.level}<span class="level-unit">%</span>`;
-                display.classList.toggle('on', control.power);
-                display.classList.toggle('off', !control.power);
+                display.classList.toggle('on', control.power && control.level > 0);
+                display.classList.toggle('off', !control.power || control.level === 0);
                 
                 // Visual feedback
                 display.style.transform = 'scale(1.05)';
                 setTimeout(() => display.style.transform = '', 200);
             }
             
-            // Update slider
+            // Update slider (mostra sempre setLevel)
             const fill = document.getElementById(`${controlId}_fill`);
             const thumb = document.getElementById(`${controlId}_thumb`);
             if (fill && thumb) {
-                fill.style.width = control.level + '%';
-                thumb.style.left = `calc(${control.level}% - 12px)`;
-                thumb.classList.toggle('active', control.power);
+                const displayLevel = control.setLevel || 0;
+                fill.style.width = displayLevel + '%';
+                thumb.style.left = `calc(${displayLevel}% - 12px)`;
+                thumb.classList.toggle('active', control.power && displayLevel > 0);
             }
             
             // Update buttons
-            const onBtn = document.getElementById(`${controlId}_on`);
-            const offBtn = document.getElementById(`${controlId}_off`);
-            if (onBtn && offBtn) {
-                onBtn.classList.toggle('on-active', control.power);
-                onBtn.classList.toggle('active', false);
-                offBtn.classList.toggle('active', !control.power);
-                
-                // Visual feedback
-                const activeBtn = control.power ? onBtn : offBtn;
-                activeBtn.style.transform = 'scale(0.95)';
-                setTimeout(() => activeBtn.style.transform = '', 150);
-            }
-            
-            // Update status
-            const dot = document.getElementById(`${controlId}_dot`);
-            const status = document.getElementById(`${controlId}_status`);
-            if (dot && status) {
-                dot.classList.toggle('on', control.power);
-                dot.classList.toggle('off', !control.power);
-                status.textContent = control.power ? 'Lights On' : 'Lights Off';
-            }
+            this.updateDALIPowerButtons(controlId, control.power);
             
         } catch (error) {
             console.error(`❌ Error updating DALI display ${controlId}:`, error);
+        }
+    }
+    
+    /**
+     * Update DALI Power Buttons - MIGLIORATO
+     */
+    updateDALIPowerButtons(controlId, isOn) {
+        const onBtn = document.getElementById(`${controlId}_on`);
+        const offBtn = document.getElementById(`${controlId}_off`);
+        
+        if (onBtn && offBtn) {
+            onBtn.classList.toggle('active', isOn);
+            offBtn.classList.toggle('active', !isOn);
+            
+            // Visual feedback
+            const activeBtn = isOn ? onBtn : offBtn;
+            activeBtn.style.transform = 'scale(0.95)';
+            setTimeout(() => activeBtn.style.transform = '', 150);
         }
     }
     
@@ -209,11 +272,11 @@ class AmanControlFactory {
     }
     
     /**
-     * ===== THERMOSTAT CONTROLS =====
+     * ===== THERMOSTAT CONTROLS - VERSIONE MIGLIORATA =====
      */
     
     /**
-     * Set Thermostat Power (On/Off)
+     * Set Thermostat Power (On/Off) - MIGLIORATO
      */
     setThermostatPower(controlId, state) {
         try {
@@ -226,6 +289,9 @@ class AmanControlFactory {
             const isOn = state === 'on';
             control.power = isOn;
             
+            // Non modificare temperatura quando si spegne/accende
+            // Mantieni sempre il setpoint impostato
+            
             this.updateThermostatDisplay(controlId, control);
             this.sendThermostatCommand(control);
             
@@ -237,7 +303,7 @@ class AmanControlFactory {
     }
     
     /**
-     * Adjust Thermostat Level (Slider)
+     * Adjust Thermostat Level (Slider) - MIGLIORATO
      */
     adjustThermostatLevel(event, controlId) {
         try {
@@ -251,22 +317,12 @@ class AmanControlFactory {
             const rect = slider.getBoundingClientRect();
             const percentage = Math.max(0, Math.min(100, ((event.clientX - rect.left) / rect.width) * 100));
             
-            // Convert percentage to temperature
+            // Converti percentuale in temperatura con step 0.5°C
             const tempRange = control.maxTemp - control.minTemp;
-            const newTemp = Math.round(control.minTemp + (percentage / 100) * tempRange);
+            const rawTemp = control.minTemp + (percentage / 100) * tempRange;
+            const newTemp = Math.round(rawTemp * 2) / 2; // Arrotonda a 0.5°C
             
-            control.temperature = newTemp;
-            
-            // Auto power management
-            if (!control.power) {
-                control.power = true;
-                this.updateThermostatPowerButtons(controlId, true);
-            }
-            
-            this.updateThermostatDisplay(controlId, control);
-            this.sendThermostatCommand(control);
-            
-            console.log(`🎛️ Thermostat Level ${controlId}: ${newTemp}°C`);
+            this.updateThermostatTemperatureDirect(controlId, newTemp);
             
         } catch (error) {
             console.error(`❌ Error adjusting thermostat level ${controlId}:`, error);
@@ -274,7 +330,7 @@ class AmanControlFactory {
     }
     
     /**
-     * Adjust Thermostat with +/- steps
+     * Adjust Thermostat with +/- steps - MIGLIORATO
      */
     adjustThermostatStep(controlId, step) {
         try {
@@ -286,25 +342,17 @@ class AmanControlFactory {
             
             let newTemp = control.temperature + step;
             
-            // Limit temperature
+            // Arrotonda a 0.5°C e limita range
+            newTemp = Math.round(newTemp * 2) / 2;
             if (newTemp < control.minTemp) {
                 newTemp = control.minTemp;
             } else if (newTemp > control.maxTemp) {
                 newTemp = control.maxTemp;
             }
             
-            control.temperature = newTemp;
+            this.updateThermostatTemperatureDirect(controlId, newTemp);
             
-            // Auto power management
-            if (!control.power) {
-                control.power = true;
-                this.updateThermostatPowerButtons(controlId, true);
-            }
-            
-            this.updateThermostatDisplay(controlId, control);
-            this.sendThermostatCommand(control);
-            
-            // Visual feedback on button
+            // Visual feedback su pulsante
             const btnId = step > 0 ? `${controlId}_increase` : `${controlId}_decrease`;
             const btn = document.getElementById(btnId);
             if (btn) {
@@ -320,7 +368,40 @@ class AmanControlFactory {
     }
     
     /**
-     * Update Thermostat Display
+     * Update Thermostat Temperature Direct - NUOVO
+     */
+    updateThermostatTemperatureDirect(controlId, newTemp) {
+        try {
+            const control = this.dashboardCore.getControl(controlId);
+            if (!control) return;
+            
+            // Arrotonda a 0.5°C
+            newTemp = Math.round(newTemp * 2) / 2;
+            
+            // Limita al range
+            if (newTemp < control.minTemp) newTemp = control.minTemp;
+            if (newTemp > control.maxTemp) newTemp = control.maxTemp;
+            
+            control.temperature = newTemp;
+            
+            // Auto power management migliorato
+            if (!control.power) {
+                control.power = true;
+                this.updateThermostatPowerButtons(controlId, true);
+            }
+            
+            this.updateThermostatDisplay(controlId, control);
+            this.sendThermostatCommand(control);
+            
+            console.log(`🎯 Thermostat Direct ${controlId}: ${newTemp}°C`);
+            
+        } catch (error) {
+            console.error(`❌ Error updating thermostat temperature direct ${controlId}:`, error);
+        }
+    }
+    
+    /**
+     * Update Thermostat Display - MIGLIORATO
      */
     updateThermostatDisplay(controlId, control) {
         try {
@@ -336,27 +417,62 @@ class AmanControlFactory {
                 setTimeout(() => display.style.transform = '', 200);
             }
             
-            // Update measured temperature container state
-            this.updateMeasuredContainerState(controlId, control);
-            
-            // Update slider
+            // Update slider position
             this.updateThermostatSlider(controlId, control);
             
             // Update power buttons
             this.updateThermostatPowerButtons(controlId, control.power);
             
-            // Update status
-            const dot = document.getElementById(`${controlId}_dot`);
-            const status = document.getElementById(`${controlId}_status`);
-            if (dot && status) {
-                dot.classList.toggle('on', control.power);
-                dot.classList.toggle('off', !control.power);
-                status.textContent = control.power ? 'Climate On' : 'Climate Off';
-            }
+            // Update climate status
+            this.updateClimateStatus(controlId, control);
+            
+            // Update measured temperature container state
+            this.updateMeasuredContainerState(controlId, control);
             
         } catch (error) {
             console.error(`❌ Error updating thermostat display ${controlId}:`, error);
         }
+    }
+    
+    /**
+     * Update Climate Status - NUOVO
+     */
+    updateClimateStatus(controlId, control) {
+        const indicator = document.getElementById(`${controlId}_climate_indicator`);
+        const icon = document.getElementById(`${controlId}_climate_icon`);
+        const status = document.getElementById(`${controlId}_climate_status`);
+        
+        if (!indicator || !icon || !status) return;
+        
+        let state = 'off';
+        let statusText = 'Spento';
+        let iconText = '🌡️';
+        
+        if (control.power) {
+            const tempDiff = control.temperature - (control.measuredTemp || 20);
+            const tolerance = 0.5;
+            
+            if (Math.abs(tempDiff) <= tolerance) {
+                state = 'neutral';
+                statusText = 'Temperatura OK';
+                iconText = '✅';
+            } else if (tempDiff > tolerance) {
+                state = 'heating';
+                statusText = 'Riscaldamento';
+                iconText = '🔥';
+            } else {
+                state = 'cooling';
+                statusText = 'Raffreddamento';
+                iconText = '❄️';
+            }
+        }
+        
+        // Remove all state classes
+        indicator.classList.remove('heating', 'cooling', 'neutral', 'off');
+        indicator.classList.add(state);
+        
+        icon.textContent = iconText;
+        status.textContent = statusText;
     }
     
     /**
@@ -372,7 +488,7 @@ class AmanControlFactory {
         }
         
         const setPoint = control.temperature;
-        const measured = control.measuredTemp;
+        const measured = control.measuredTemp || 20;
         const difference = setPoint - measured;
         const tolerance = 0.5;
         
@@ -389,24 +505,27 @@ class AmanControlFactory {
     }
     
     /**
-     * Update Thermostat Slider
+     * Update Thermostat Slider - MIGLIORATO
      */
     updateThermostatSlider(controlId, control) {
         const fill = document.getElementById(`${controlId}_fill`);
         const thumb = document.getElementById(`${controlId}_thumb`);
         if (!fill || !thumb) return;
         
-        // Convert temperature to percentage
+        // Calcola percentuale con precisione 0.5°C
         const tempRange = control.maxTemp - control.minTemp;
-        const percentage = ((control.temperature - control.minTemp) / tempRange) * 100;
+        const normalizedTemp = control.temperature - control.minTemp;
+        const percentage = (normalizedTemp / tempRange) * 100;
         
         fill.style.width = percentage + '%';
         thumb.style.left = `calc(${percentage}% - 12px)`;
         thumb.classList.toggle('active', control.power);
         
         // Visual feedback
-        thumb.style.boxShadow = '0 6px 20px rgba(139, 69, 19, 0.4)';
-        setTimeout(() => thumb.style.boxShadow = '', 300);
+        if (control.power) {
+            fill.style.boxShadow = '0 2px 8px rgba(46, 125, 50, 0.3)';
+            setTimeout(() => fill.style.boxShadow = '', 300);
+        }
     }
     
     /**
@@ -417,8 +536,7 @@ class AmanControlFactory {
         const offBtn = document.getElementById(`${controlId}_off`);
         
         if (onBtn && offBtn) {
-            onBtn.classList.toggle('on-active', isOn);
-            onBtn.classList.toggle('active', false);
+            onBtn.classList.toggle('active', isOn);
             offBtn.classList.toggle('active', !isOn);
             
             // Visual feedback
@@ -442,9 +560,9 @@ class AmanControlFactory {
                 return;
             }
             
-            // Update control with MQTT data
-            localControl.temperature = mqttControl.temperature;
-            localControl.measuredTemp = mqttControl.measuredTemp;
+            // Update control with MQTT data - arrotonda a 0.5°C
+            localControl.temperature = Math.round(mqttControl.temperature * 2) / 2;
+            localControl.measuredTemp = Math.round(mqttControl.measuredTemp * 2) / 2;
             localControl.power = mqttControl.power;
             localControl.climateState = mqttControl.climateState;
             
@@ -494,25 +612,8 @@ class AmanControlFactory {
             // Update power buttons
             this.updateThermostatPowerButtons(controlId, control.power);
             
-            // Update status
-            const dot = document.getElementById(`${controlId}_dot`);
-            const status = document.getElementById(`${controlId}_status`);
-            if (dot && status) {
-                dot.classList.toggle('on', control.power);
-                dot.classList.toggle('off', !control.power);
-                
-                // Status text based on climate state
-                let statusText = 'Climate Off';
-                if (control.power) {
-                    switch (control.climateState) {
-                        case 'heating': statusText = 'Heating'; break;
-                        case 'cooling': statusText = 'Cooling'; break;
-                        case 'neutral': statusText = 'Temperature OK'; break;
-                        default: statusText = 'Climate On';
-                    }
-                }
-                status.textContent = statusText;
-            }
+            // Update climate status
+            this.updateClimateStatus(controlId, control);
             
         } catch (error) {
             console.error(`❌ Error updating thermostat display from MQTT ${controlId}:`, error);
@@ -540,6 +641,10 @@ class AmanControlFactory {
         measuredContainer.style.boxShadow = '0 8px 20px rgba(76, 175, 80, 0.3)';
         setTimeout(() => measuredContainer.style.boxShadow = '', 1000);
     }
+    
+    /**
+     * Send Thermostat Command via MQTT
+     */
     sendThermostatCommand(control) {
         try {
             if (!this.dashboardCore.mqttManager || !this.dashboardCore.mqttManager.isConnected) {
@@ -562,6 +667,10 @@ class AmanControlFactory {
             return false;
         }
     }
+    
+    /**
+     * ===== ON/OFF CONTROLS =====
+     */
     
     /**
      * Toggle On/Off Control
@@ -877,6 +986,7 @@ class AmanControlFactory {
             case 'dali':
                 return {
                     level: control.level,
+                    setLevel: control.setLevel,
                     power: control.power,
                     locale: control.locale
                 };
@@ -948,6 +1058,13 @@ class AmanControlFactory {
                     
                 case 'monostable':
                     this.executeMonostable(control.id);
+                    break;
+                    
+                case 'thermostat':
+                    this.setThermostatPower(control.id, 'on');
+                    setTimeout(() => this.adjustThermostatStep(control.id, 1), 1000);
+                    setTimeout(() => this.adjustThermostatStep(control.id, -1), 2000);
+                    setTimeout(() => this.setThermostatPower(control.id, 'off'), 3000);
                     break;
             }
             
