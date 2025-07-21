@@ -7,6 +7,12 @@
  * - Sincronizzazione stati ricevuti da MQTT
  * - Gestione interazioni utente
  * - Integrazione con LuceDALIGlassMorphism.html
+ * - Label di stato dinamica con 5 livelli di intensità
+ * 
+ * MODIFICHE V2:
+ * ✅ Colori più decisi e contrastati per label e pulsanti
+ * ✅ Rimozione label ridondante "Lights On/Off"
+ * ✅ Slider completamente interattivo e sbloccato
  */
 
 class DALIMQTTController {
@@ -271,6 +277,7 @@ class DALIMQTTController {
     
     /**
      * Generazione HTML per controllo DALI (basato su LuceDALIGlassMorphism.html)
+     * MODIFICATO: Rimossa label "Lights On/Off" ridondante
      */
     generateDALIControlHTML(controlId, zoneLabel) {
         return `
@@ -294,6 +301,9 @@ class DALIMQTTController {
                     </div>
                 </div>
                 
+                <!-- LABEL STATO DINAMICA -->
+                <div class="dali-status-label status-off" id="statusLabel_${controlId}">Spento</div>
+                
                 <!-- SLIDER IMPOSTAZIONE LIVELLO -->
                 <div class="level-control">
                     <div class="level-label">Impostazione Livello</div>
@@ -312,10 +322,9 @@ class DALIMQTTController {
                     </div>
                 </div>
                 
-                <!-- STATUS INDICATOR -->
+                <!-- STATUS INDICATOR - Solo indicatore visivo, senza testo ridondante -->
                 <div class="status-indicator">
                     <div class="status-dot off" id="statusDot_${controlId}"></div>
-                    <span id="statusText_${controlId}">Luci spente</span>
                 </div>
             </div>
         `;
@@ -343,32 +352,129 @@ class DALIMQTTController {
     }
     
     /**
-     * Setup eventi drag per slider
+     * Setup eventi drag per slider - POTENZIATO per renderlo completamente interattivo
      */
     setupSliderEvents(controlId) {
+        const sliderContainer = document.querySelector(`#daliController_${controlId} .level-slider`);
         const thumb = document.getElementById(`levelThumb_${controlId}`);
-        if (!thumb) return;
+        
+        if (!thumb || !sliderContainer) {
+            console.warn(`⚠️ Elementi slider non trovati per ${controlId}`);
+            return;
+        }
         
         let isDragging = false;
+        let startX = 0;
+        let startPercentage = 0;
         
+        // Funzione per calcolare percentuale da posizione
+        const calculatePercentage = (clientX) => {
+            const rect = sliderContainer.getBoundingClientRect();
+            return Math.max(0, Math.min(100, Math.round(((clientX - rect.left) / rect.width) * 100)));
+        };
+        
+        // Funzione per aggiornare posizione thumb
+        const updateThumbPosition = (percentage) => {
+            this.updateControlLevel(controlId, percentage, true);
+        };
+        
+        // EVENTO 1: Mouse down su thumb
         thumb.addEventListener('mousedown', (e) => {
-            isDragging = true;
             e.preventDefault();
+            e.stopPropagation();
+            isDragging = true;
+            startX = e.clientX;
+            
+            const rect = sliderContainer.getBoundingClientRect();
+            const thumbRect = thumb.getBoundingClientRect();
+            startPercentage = ((thumbRect.left + thumbRect.width/2 - rect.left) / rect.width) * 100;
+            
+            thumb.style.transition = 'none';
+            document.body.style.userSelect = 'none';
+            
+            console.log(`🎚️ Inizio drag ${controlId} da ${Math.round(startPercentage)}%`);
         });
         
+        // EVENTO 2: Mouse move durante drag
         document.addEventListener('mousemove', (e) => {
             if (!isDragging) return;
             
-            const slider = document.getElementById(`levelFill_${controlId}`).parentElement;
-            const rect = slider.getBoundingClientRect();
-            const percentage = Math.max(0, Math.min(100, Math.round(((e.clientX - rect.left) / rect.width) * 100)));
-            
-            this.updateControlLevel(controlId, percentage, true);
+            e.preventDefault();
+            const percentage = calculatePercentage(e.clientX);
+            updateThumbPosition(percentage);
         });
         
-        document.addEventListener('mouseup', () => {
+        // EVENTO 3: Mouse up (fine drag)
+        document.addEventListener('mouseup', (e) => {
+            if (!isDragging) return;
+            
             isDragging = false;
+            thumb.style.transition = 'all 0.3s ease';
+            document.body.style.userSelect = '';
+            
+            const finalPercentage = calculatePercentage(e.clientX);
+            console.log(`🎚️ Fine drag ${controlId} a ${finalPercentage}%`);
+            
+            // Invio comando MQTT finale
+            const controlData = this.activeControls.get(controlId);
+            if (controlData) {
+                this.sendDALICommand(controlData, finalPercentage);
+            }
         });
+        
+        // EVENTO 4: Click diretto su slider (non su thumb)
+        sliderContainer.addEventListener('click', (e) => {
+            if (e.target === thumb || isDragging) return;
+            
+            const percentage = calculatePercentage(e.clientX);
+            updateThumbPosition(percentage);
+            
+            console.log(`🎚️ Click diretto ${controlId} a ${percentage}%`);
+            
+            // Invio comando MQTT
+            const controlData = this.activeControls.get(controlId);
+            if (controlData) {
+                this.sendDALICommand(controlData, percentage);
+            }
+        });
+        
+        // EVENTO 5: Touch support per dispositivi mobili
+        thumb.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            isDragging = true;
+            startX = touch.clientX;
+            
+            const rect = sliderContainer.getBoundingClientRect();
+            const thumbRect = thumb.getBoundingClientRect();
+            startPercentage = ((thumbRect.left + thumbRect.width/2 - rect.left) / rect.width) * 100;
+            
+            thumb.style.transition = 'none';
+        });
+        
+        document.addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+            
+            e.preventDefault();
+            const touch = e.touches[0];
+            const percentage = calculatePercentage(touch.clientX);
+            updateThumbPosition(percentage);
+        });
+        
+        document.addEventListener('touchend', (e) => {
+            if (!isDragging) return;
+            
+            isDragging = false;
+            thumb.style.transition = 'all 0.3s ease';
+            
+            // Invio comando MQTT finale
+            const controlData = this.activeControls.get(controlId);
+            if (controlData) {
+                this.sendDALICommand(controlData, controlData.setpoint);
+            }
+        });
+        
+        console.log(`✅ Eventi slider configurati per ${controlId}`);
     }
     
     /**
@@ -397,6 +503,7 @@ class DALIMQTTController {
     
     /**
      * Aggiornamento UI controllo
+     * MODIFICATO: Rimossa gestione label "Lights On/Off"
      */
     updateControlUI(controlId, zoneData) {
         // Aggiornamento display livello
@@ -407,14 +514,66 @@ class DALIMQTTController {
             levelDisplay.classList.toggle('off', !zoneData.isOn);
         }
         
+        // Aggiornamento label di stato dinamica
+        this.updateStatusLabel(controlId, zoneData.currentLevel, zoneData.isOn);
+        
         // Aggiornamento slider
         this.updateSliderUI(controlId, zoneData.setpoint);
         
         // Aggiornamento pulsanti power
         this.updatePowerButtons(controlId, zoneData.isOn);
         
-        // Aggiornamento status
+        // Aggiornamento status indicator (solo visual dot)
         this.updateStatusIndicator(controlId, zoneData.isOn);
+    }
+    
+    /**
+     * Aggiornamento label di stato dinamica
+     * Gestisce le 5 condizioni richieste con effetto visivo
+     */
+    updateStatusLabel(controlId, currentLevel, isOn) {
+        const statusLabel = document.getElementById(`statusLabel_${controlId}`);
+        if (!statusLabel) return;
+        
+        // Effetto visivo di aggiornamento
+        statusLabel.style.transform = 'scale(1.05)';
+        statusLabel.style.transition = 'all 0.2s ease';
+        
+        setTimeout(() => {
+            let statusText = '';
+            let statusClass = '';
+            
+            // Logica delle 5 condizioni
+            if (!isOn) {
+                statusText = 'Spento';
+                statusClass = 'status-off';
+            } else if (currentLevel === 0) {
+                statusText = 'Acceso - Livello 0%';
+                statusClass = 'status-zero';
+            } else if (currentLevel >= 1 && currentLevel <= 25) {
+                statusText = `Bassa intensità - ${currentLevel}%`;
+                statusClass = 'status-low';
+            } else if (currentLevel >= 26 && currentLevel <= 75) {
+                statusText = `Media intensità - ${currentLevel}%`;
+                statusClass = 'status-medium';
+            } else if (currentLevel >= 76 && currentLevel <= 100) {
+                statusText = `Alta intensità - ${currentLevel}%`;
+                statusClass = 'status-high';
+            }
+            
+            // Rimozione classi precedenti
+            statusLabel.classList.remove('status-off', 'status-zero', 'status-low', 'status-medium', 'status-high');
+            
+            // Applicazione nuova classe e testo
+            statusLabel.classList.add(statusClass);
+            statusLabel.textContent = statusText;
+            
+            // Ripristino scala
+            statusLabel.style.transform = 'scale(1)';
+            
+            console.log(`🏷️ Label aggiornata ${controlId}: ${statusText} (${statusClass})`);
+            
+        }, 100);
     }
     
     /**
@@ -446,16 +605,14 @@ class DALIMQTTController {
     }
     
     /**
-     * Aggiornamento status indicator
+     * Aggiornamento status indicator - MODIFICATO: Solo indicatore visivo
      */
     updateStatusIndicator(controlId, isOn) {
         const dot = document.getElementById(`statusDot_${controlId}`);
-        const text = document.getElementById(`statusText_${controlId}`);
         
-        if (dot && text) {
+        if (dot) {
             dot.classList.toggle('on', isOn);
             dot.classList.toggle('off', !isOn);
-            text.textContent = isOn ? 'Luci accese' : 'Luci spente';
         }
     }
     
@@ -485,12 +642,19 @@ class DALIMQTTController {
     }
     
     /**
-     * Gestione click su slider
+     * Gestione click su slider - MIGLIORATO per interazione diretta
      */
     adjustLevel(event, controlId) {
+        // Previeni azione se è in corso un drag
+        if (event.target.classList.contains('level-thumb')) {
+            return; // Il drag gestirà l'interazione
+        }
+        
         const slider = event.currentTarget;
         const rect = slider.getBoundingClientRect();
         const percentage = Math.max(0, Math.min(100, Math.round(((event.clientX - rect.left) / rect.width) * 100)));
+        
+        console.log(`🎚️ Click slider ${controlId}: ${percentage}%`);
         
         this.updateControlLevel(controlId, percentage, true);
         
@@ -524,10 +688,6 @@ class DALIMQTTController {
         // Se modificato dall'utente, prepara invio comando MQTT
         if (userTriggered) {
             console.log(`👤 Modifica utente ${controlId}: ${level}%`);
-            const controlData = this.activeControls.get(controlId);
-            if (controlData) {
-                this.sendDALICommand(controlData, level);
-            }
         }
     }
     
@@ -788,10 +948,10 @@ window.daliMQTT = {
     }
 };
 
-// CSS styles injection
+// CSS styles injection - AGGIORNATO con colori più decisi e contrastati
 const daliCSS = `
 <style>
-/* DALI Controller Styles */
+/* DALI Controller Styles - AGGIORNATO V2 */
 .dali-controller {
     background: linear-gradient(135deg, #EDD4B4 0%, #FAFAF0 100%);
     border: 1px solid rgba(139, 69, 19, 0.3);
@@ -902,30 +1062,84 @@ const daliCSS = `
     gap: 10px;
 }
 
+/* MIGLIORATO: Pulsanti ON/OFF con colori più decisi */
 .power-btn {
     color: #5D4037;
     cursor: pointer;
     min-width: 70px;
+    background: rgba(255, 255, 255, 0.4);
+    border: 1px solid rgba(139, 69, 19, 0.2);
 }
 
 .power-btn:hover {
-    background: rgba(139, 69, 19, 0.25);
-    border-color: rgba(139, 69, 19, 0.4);
+    background: rgba(139, 69, 19, 0.4);
+    border-color: rgba(139, 69, 19, 0.6);
     transform: translateY(-2px);
-    color: #8B4513;
+    color: white;
+    box-shadow: 0 6px 20px rgba(139, 69, 19, 0.3);
 }
 
 .power-btn.active {
-    background: rgba(139, 69, 19, 0.3);
-    border-color: rgba(139, 69, 19, 0.5);
-    color: #8B4513;
+    background: rgba(139, 69, 19, 0.7);
+    border-color: rgba(139, 69, 19, 0.8);
+    color: white;
     font-weight: 600;
+    box-shadow: 0 4px 15px rgba(139, 69, 19, 0.4);
 }
 
 .power-btn.on-active {
-    background: rgba(255, 193, 7, 0.4);
-    border-color: rgba(255, 193, 7, 0.5);
-    color: #8B4513;
+    background: rgba(139, 69, 19, 0.7);
+    border-color: rgba(139, 69, 19, 0.8);
+    color: white;
+    box-shadow: 0 4px 15px rgba(139, 69, 19, 0.4);
+}
+
+/* MIGLIORATO: Stili per la label di stato dinamica con colori più decisi */
+.dali-status-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 15px;
+    margin: 10px 0;
+    border-radius: 12px;
+    font-size: 0.9em;
+    font-weight: 600;
+    text-align: center;
+    transition: all 0.4s ease;
+    border: 1px solid transparent;
+    position: relative;
+    z-index: 2;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+}
+
+.dali-status-label.status-off {
+    background: linear-gradient(135deg, rgba(73, 80, 87, 0.8) 0%, rgba(52, 58, 64, 0.7) 100%);
+    color: white;
+    border-color: rgba(73, 80, 87, 0.9);
+}
+
+.dali-status-label.status-zero {
+    background: linear-gradient(135deg, rgba(255, 193, 7, 0.9) 0%, rgba(255, 152, 0, 0.8) 100%);
+    color: white;
+    border-color: rgba(255, 193, 7, 1);
+}
+
+.dali-status-label.status-low {
+    background: linear-gradient(135deg, rgba(40, 167, 69, 0.9) 0%, rgba(25, 135, 84, 0.8) 100%);
+    color: white;
+    border-color: rgba(40, 167, 69, 1);
+}
+
+.dali-status-label.status-medium {
+    background: linear-gradient(135deg, rgba(255, 152, 0, 0.9) 0%, rgba(255, 87, 34, 0.8) 100%);
+    color: white;
+    border-color: rgba(255, 152, 0, 1);
+}
+
+.dali-status-label.status-high {
+    background: linear-gradient(135deg, rgba(220, 53, 69, 0.9) 0%, rgba(183, 28, 28, 0.8) 100%);
+    color: white;
+    border-color: rgba(220, 53, 69, 1);
 }
 
 .level-control {
@@ -948,6 +1162,7 @@ const daliCSS = `
     padding: 10px 0;
 }
 
+/* MIGLIORATO: Slider completamente interattivo */
 .level-slider {
     width: 100%;
     height: 8px;
@@ -956,6 +1171,12 @@ const daliCSS = `
     position: relative;
     cursor: pointer;
     border: 1px solid rgba(139, 69, 19, 0.1);
+    transition: all 0.2s ease;
+}
+
+.level-slider:hover {
+    background: rgba(139, 69, 19, 0.3);
+    transform: scaleY(1.2);
 }
 
 .level-fill {
@@ -974,20 +1195,27 @@ const daliCSS = `
     background: rgba(255, 255, 255, 0.9);
     border-radius: 50%;
     border: 2px solid rgba(139, 69, 19, 0.5);
-    cursor: pointer;
+    cursor: grab;
     transition: all 0.3s ease;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 
 .level-thumb:hover {
-    transform: scale(1.2);
-    box-shadow: 0 6px 20px rgba(139, 69, 19, 0.3);
-    border-color: rgba(139, 69, 19, 0.7);
+    transform: scale(1.3);
+    box-shadow: 0 8px 25px rgba(139, 69, 19, 0.4);
+    border-color: rgba(139, 69, 19, 0.8);
+    cursor: grab;
+}
+
+.level-thumb:active {
+    cursor: grabbing;
+    transform: scale(1.1);
 }
 
 .level-thumb.active {
     background: rgba(255, 193, 7, 0.9);
     border-color: rgba(255, 193, 7, 0.7);
+    box-shadow: 0 6px 20px rgba(255, 193, 7, 0.4);
 }
 
 .slider-scale {
@@ -1011,18 +1239,20 @@ const daliCSS = `
 }
 
 .status-dot {
-    width: 8px;
-    height: 8px;
+    width: 12px;
+    height: 12px;
     border-radius: 50%;
     animation: pulse 2s infinite;
 }
 
 .status-dot.on {
     background: rgba(255, 193, 7, 0.8);
+    box-shadow: 0 0 15px rgba(255, 193, 7, 0.5);
 }
 
 .status-dot.off {
     background: rgba(108, 117, 125, 0.8);
+    box-shadow: 0 0 10px rgba(108, 117, 125, 0.3);
 }
 
 @keyframes pulse {
