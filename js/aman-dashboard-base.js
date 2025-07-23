@@ -1,6 +1,6 @@
 /**
- * AMAN Venice Dashboard Base Module
- * Core JavaScript per dashboard modulare
+ * AMAN Venice Dashboard Base Module - VERSIONE CON FILTRO CONSOLE
+ * Core JavaScript per dashboard modulare con console filtrata per camera specifica
  * 
  * Da includere in tutte le camere come modulo base
  */
@@ -24,6 +24,9 @@ var AmanDashboard = {
     // UI State
     currentTab: null,
     controls: {},
+    
+    // Console filtering
+    currentRoomNumber: null,
     
     // Initialize system
     async init() {
@@ -57,9 +60,10 @@ var AmanDashboard = {
         }
         
         this.roomNumber = roomNum.toString().padStart(2, '0');
+        this.currentRoomNumber = parseInt(this.roomNumber); // Per il filtro console
         this.roomName = `Room ${this.roomNumber}`;
         
-        console.log(`🏠 Room initialized: ${this.roomName}`);
+        console.log(`🏠 Room initialized: ${this.roomName} (Filter: Camera ${this.currentRoomNumber})`);
     },
     
     // Inject base HTML structure into page
@@ -196,13 +200,19 @@ var AmanDashboard = {
             <!-- Console -->
             <div class="console-panel" id="consolePanel">
                 <div class="console-header">
-                    <div id="consoleTitle">📡 MQTT Console - ${this.roomName}</div>
+                    <div id="consoleTitle">📡 MQTT Console - Camera ${this.currentRoomNumber}</div>
                     <div>
+                        <button class="header-btn" onclick="clearConsole()">Clear</button>
                         <button class="header-btn" onclick="hideConsole()">Close</button>
                     </div>
                 </div>
+                <div class="console-filter">
+                    <span class="filter-label">🔍 Filter:</span>
+                    <span class="filter-status">Camera ${this.currentRoomNumber} Only</span>
+                    <span style="color: rgba(255,255,255,0.7); font-size: 11px;">Showing only messages with "nCamera": ${this.currentRoomNumber}</span>
+                </div>
                 <div class="console-content" id="consoleContent">
-                    <div class="message-info">[SYSTEM] ${this.roomName} dashboard console initialized</div>
+                    <div class="message-info">[SYSTEM] Console initialized - Filtering messages for Camera ${this.currentRoomNumber}</div>
                 </div>
             </div>
 
@@ -642,6 +652,38 @@ var AmanDashboard = {
             .message-info { color: #66ccff; }
             .message-error { color: #ff6666; }
 
+            /* Console Filter Controls */
+            .console-filter {
+                background: rgba(26, 74, 58, 0.8);
+                padding: 10px 20px;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+                display: flex;
+                align-items: center;
+                gap: 15px;
+                font-size: 12px;
+            }
+
+            .filter-label {
+                color: var(--white);
+                font-weight: bold;
+            }
+
+            .filter-status {
+                padding: 4px 8px;
+                border-radius: 4px;
+                background: var(--aman-gold);
+                color: var(--aman-green);
+                font-weight: bold;
+                font-size: 11px;
+            }
+
+            .filtered-message {
+                opacity: 0.6;
+                border-left: 3px solid var(--aman-gold);
+                padding-left: 10px;
+                margin: 5px 0;
+            }
+
             /* Info Modal */
             .info-modal {
                 display: none;
@@ -940,12 +982,12 @@ var AmanDashboard = {
             await this.loadRoomConfig();
             await this.sleep(500);
             
-            this.updateLoadingStatus('Initializing MQTT system...');
-            await this.initializeMQTT();
-            await this.sleep(300);
-            
             this.updateLoadingStatus('Setting up user interface...');
             this.setupUI();
+            await this.sleep(300);
+            
+            this.updateLoadingStatus('Initializing MQTT system...');
+            await this.initializeMQTT();
             await this.sleep(300);
             
             this.updateLoadingStatus('Connecting to room systems...');
@@ -964,7 +1006,7 @@ var AmanDashboard = {
             this.updateInfoModal();
             
             console.log('🎉', this.roomName, 'Dashboard loaded successfully!');
-            this.logToConsole('info', 'Dashboard Ready', `${this.roomName} loaded with MQTT integration`);
+            this.logToConsole('info', 'Dashboard Ready', `${this.roomName} loaded with MQTT integration and filtered console`);
             
         } catch (error) {
             console.error('❌ Failed to load dashboard:', error);
@@ -976,7 +1018,25 @@ var AmanDashboard = {
         }
     },
     
-    // Initialize MQTT system
+    // Setup user interface (moved before MQTT initialization)
+    setupUI() {
+        console.log('🎨 Setting up user interface...');
+        
+        // Create navigation tabs
+        this.createNavigationTabs();
+        
+        // Create tab contents with DALI container
+        this.createTabContents();
+        
+        // Activate first tab
+        if (this.roomConfig.tabs && this.roomConfig.tabs.length > 0) {
+            this.switchTab(this.roomConfig.tabs[0].id);
+        }
+        
+        console.log('✅ User interface setup complete');
+    },
+    
+    // Initialize MQTT system (moved after UI setup)
     async initializeMQTT() {
         try {
             console.log('📡 Initializing MQTT system...');
@@ -1000,7 +1060,23 @@ var AmanDashboard = {
                 throw new Error('Failed to initialize MQTT Senders');
             }
             
-            // Initialize DALI controller if needed
+            // Override MQTT message processing to filter messages
+            const originalProcessMessage = this.mqttHandlers.processMessage;
+            this.mqttHandlers.processMessage = (topic, jsonData) => {
+                // Check if message is for current room
+                if (this.isMessageForCurrentRoom(jsonData)) {
+                    // Call original process method
+                    originalProcessMessage.call(this.mqttHandlers, topic, jsonData);
+                    
+                    // Log filtered message to console
+                    this.logToConsole('received', `MQTT Message [Camera ${this.currentRoomNumber}]`, jsonData);
+                } else {
+                    // Silently ignore messages for other rooms
+                    console.log(`🔍 Filtered out message for Camera ${jsonData.nCamera || 'unknown'}`);
+                }
+            }.bind(this);
+            
+            // Initialize DALI controller if needed (NOW after UI is ready)
             if (this.hasDaliControls()) {
                 if (typeof DALIMQTTController === 'undefined') {
                     throw new Error('DALI Controller not available');
@@ -1012,7 +1088,7 @@ var AmanDashboard = {
                 }
             }
             
-            console.log('✅ MQTT system initialized');
+            console.log('✅ MQTT system initialized with console filtering');
             return true;
             
         } catch (error) {
@@ -1021,6 +1097,14 @@ var AmanDashboard = {
             this.logToConsole('error', 'MQTT Failed', 'Running in simulation mode: ' + error.message);
             return false;
         }
+    },
+    
+    // Check if message is for current room
+    isMessageForCurrentRoom(messageData) {
+        if (typeof messageData === 'object' && messageData !== null) {
+            return messageData.nCamera === this.currentRoomNumber;
+        }
+        return false;
     },
     
     // Check if room has DALI controls
@@ -1032,24 +1116,6 @@ var AmanDashboard = {
                 control.type === 'dali-light'
             )
         );
-    },
-    
-    // Setup user interface
-    setupUI() {
-        console.log('🎨 Setting up user interface...');
-        
-        // Create navigation tabs
-        this.createNavigationTabs();
-        
-        // Create tab contents
-        this.createTabContents();
-        
-        // Activate first tab
-        if (this.roomConfig.tabs && this.roomConfig.tabs.length > 0) {
-            this.switchTab(this.roomConfig.tabs[0].id);
-        }
-        
-        console.log('✅ User interface setup complete');
     },
     
     // Create navigation tabs
@@ -1079,12 +1145,13 @@ var AmanDashboard = {
         
         if (!this.roomConfig.tabs) return;
         
-        // Create DALI container if needed
+        // Create DALI container FIRST if needed
         if (this.hasDaliControls()) {
             const daliContainer = document.createElement('div');
             daliContainer.id = 'daliControlsContainer';
             daliContainer.style.cssText = 'margin: 20px 0;';
             tabsContainer.appendChild(daliContainer);
+            console.log('✅ DALI container created and added to DOM');
         }
         
         this.roomConfig.tabs.forEach((tab, index) => {
@@ -1107,8 +1174,8 @@ var AmanDashboard = {
                 const placeholder = document.createElement('div');
                 placeholder.innerHTML = `
                     <div style="text-align: center; padding: 40px; color: #8B4513;">
-                        <h3>💡 Loading DALI Controls...</h3>
-                        <p>MQTT system will populate controls automatically</p>
+                        <h3>💡 DALI Controls Ready</h3>
+                        <p>Waiting for MQTT connection to populate controls...</p>
                     </div>
                 `;
                 tabContent.appendChild(placeholder);
@@ -1234,10 +1301,18 @@ var AmanDashboard = {
         });
     },
     
-    // Console logging
+    // Console logging with filtering
     logToConsole(type, header, data) {
         const content = document.getElementById('consoleContent');
         if (!content) return;
+        
+        // Check if this is an MQTT message that should be filtered
+        if (header.includes('MQTT') && data && typeof data === 'object') {
+            // Only log messages for current room
+            if (!this.isMessageForCurrentRoom(data)) {
+                return; // Don't log messages for other rooms
+            }
+        }
         
         const timestamp = new Date().toLocaleTimeString();
         const messageDiv = document.createElement('div');
@@ -1268,8 +1343,18 @@ var AmanDashboard = {
         messageDiv.style.whiteSpace = 'pre-wrap';
         
         let messageText = `[${timestamp}] ${icon} ${header}`;
+        
+        // Add Camera badge for filtered messages
+        if (data && typeof data === 'object' && this.isMessageForCurrentRoom(data)) {
+            messageText += ` [CAMERA ${this.currentRoomNumber}]`;
+        }
+        
         if (data) {
-            messageText += ':\n' + data;
+            if (typeof data === 'object') {
+                messageText += ':\n' + JSON.stringify(data, null, 2);
+            } else {
+                messageText += ` ${data}`;
+            }
         }
         
         messageDiv.textContent = messageText;
@@ -1280,6 +1365,32 @@ var AmanDashboard = {
         const messages = content.querySelectorAll('div');
         if (messages.length > 50) {
             messages[0].remove();
+        }
+    },
+    
+    // Send MQTT message with current room number
+    sendMQTTMessage(payload) {
+        if (!this.mqttSenders) {
+            console.warn('⚠️ MQTT Senders not available');
+            return false;
+        }
+        
+        // Ensure the message includes the current room number
+        if (payload && typeof payload === 'object') {
+            payload.nCamera = this.currentRoomNumber;
+        }
+        
+        // Log outgoing message to console (will be filtered automatically)
+        this.logToConsole('sent', `MQTT Send [Camera ${this.currentRoomNumber}]`, payload);
+        
+        return this.mqttSenders.sendCommand(payload);
+    },
+    
+    // Clear console
+    clearConsole() {
+        const content = document.getElementById('consoleContent');
+        if (content) {
+            content.innerHTML = `<div class="message-info">[SYSTEM] Console cleared - Filtering messages for Camera ${this.currentRoomNumber}</div>`;
         }
     },
     
@@ -1340,6 +1451,10 @@ function hideConsole() {
     if (panel) panel.classList.remove('show');
 }
 
+function clearConsole() {
+    AmanDashboard.clearConsole();
+}
+
 // ===== GLOBAL API =====
 
 window.AmanAPI = {
@@ -1347,12 +1462,14 @@ window.AmanAPI = {
     getRoomNumber: () => AmanDashboard.roomNumber,
     getRoomName: () => AmanDashboard.roomName,
     getRoomConfig: () => AmanDashboard.roomConfig,
+    getCurrentRoomNumber: () => AmanDashboard.currentRoomNumber,
     
     // MQTT
     getMQTTManager: () => AmanDashboard.mqttManager,
     getMQTTHandlers: () => AmanDashboard.mqttHandlers,
     getMQTTSenders: () => AmanDashboard.mqttSenders,
     getDALIController: () => AmanDashboard.daliController,
+    sendMessage: (payload) => AmanDashboard.sendMQTTMessage(payload),
     
     // Status
     isConnected: () => AmanDashboard.connected,
@@ -1360,6 +1477,7 @@ window.AmanAPI = {
     
     // Console
     log: (type, header, data) => AmanDashboard.logToConsole(type, header, data),
+    clearConsole: () => AmanDashboard.clearConsole(),
     
     // Dashboard control
     switchTab: (tabId) => AmanDashboard.switchTab(tabId),
@@ -1390,7 +1508,7 @@ window.amanDebug = {
     // Simulate DALI message
     simulateDALI: (roomNumber) => {
         if (AmanDashboard.mqttHandlers) {
-            AmanDashboard.mqttHandlers.simulateMessage('DALI_LIGHTS', roomNumber || parseInt(AmanDashboard.roomNumber));
+            AmanDashboard.mqttHandlers.simulateMessage('DALI_LIGHTS', roomNumber || AmanDashboard.currentRoomNumber);
         } else {
             console.warn('⚠️ MQTT Handlers not initialized');
         }
@@ -1399,7 +1517,7 @@ window.amanDebug = {
     // Test DALI commands
     testCommands: (roomNumber) => {
         if (AmanDashboard.daliController) {
-            AmanDashboard.daliController.testDALICommands(roomNumber || parseInt(AmanDashboard.roomNumber));
+            AmanDashboard.daliController.testDALICommands(roomNumber || AmanDashboard.currentRoomNumber);
         } else {
             console.warn('⚠️ DALI Controller not initialized');
         }
@@ -1408,6 +1526,7 @@ window.amanDebug = {
     // System info
     systemInfo: () => ({
         room: AmanDashboard.roomNumber,
+        currentRoomNumber: AmanDashboard.currentRoomNumber,
         connected: AmanDashboard.connected,
         config: AmanDashboard.roomConfig,
         mqttReady: !!AmanDashboard.mqttManager,
@@ -1421,6 +1540,28 @@ window.amanDebug = {
         } else {
             console.warn('⚠️ MQTT Manager not initialized');
         }
+    },
+    
+    // Test console filter
+    testFilter: () => {
+        console.log('🧪 Testing console filter...');
+        
+        // Simulate message for current room (should appear)
+        AmanDashboard.logToConsole('received', 'TEST - Should appear', {
+            nCamera: AmanDashboard.currentRoomNumber,
+            sNome: 'TestMessage',
+            testData: 'This should appear in console'
+        });
+        
+        // Simulate message for different room (should not appear)
+        const otherRoom = AmanDashboard.currentRoomNumber === 1 ? 2 : 1;
+        AmanDashboard.logToConsole('received', 'TEST - Should NOT appear', {
+            nCamera: otherRoom,
+            sNome: 'TestMessage',
+            testData: 'This should NOT appear in console'
+        });
+        
+        console.log(`✅ Filter test completed. Check console - only Camera ${AmanDashboard.currentRoomNumber} message should appear.`);
     }
 };
 
@@ -1428,7 +1569,7 @@ window.amanDebug = {
 
 // Auto-initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', async function() {
-    console.log('🚀 Starting AMAN Venice Dashboard...');
+    console.log('🚀 Starting AMAN Venice Dashboard with Console Filter...');
     console.log('🏠 Room:', window.AMAN_ROOM_NUMBER || 'auto-detect');
     
     try {
@@ -1469,4 +1610,4 @@ if (typeof module !== 'undefined' && module.exports) {
     module.exports = { AmanDashboard, AmanAPI: window.AmanAPI };
 }
 
-console.log('✅ AMAN Venice Dashboard Base Module ready');
+console.log('✅ AMAN Venice Dashboard Base Module ready with Console Filter');
