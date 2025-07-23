@@ -1148,6 +1148,38 @@
         .message-info { color: #66ccff; }
         .message-error { color: #ff6666; }
 
+        /* ===== CONSOLE FILTER CONTROLS ===== */
+        .console-filter {
+            background: rgba(26, 74, 58, 0.8);
+            padding: 10px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 12px;
+        }
+
+        .filter-label {
+            color: var(--white);
+            font-weight: bold;
+        }
+
+        .filter-status {
+            padding: 4px 8px;
+            border-radius: 4px;
+            background: var(--aman-gold);
+            color: var(--aman-green);
+            font-weight: bold;
+            font-size: 11px;
+        }
+
+        .filtered-message {
+            opacity: 0.6;
+            border-left: 3px solid var(--aman-gold);
+            padding-left: 10px;
+            margin: 5px 0;
+        }
+
         /* ===== INFO MODAL ===== */
         .info-modal {
             display: none;
@@ -1421,13 +1453,19 @@
     <!-- Console -->
     <div class="console-panel" id="consolePanel">
         <div class="console-header">
-            <div id="consoleTitle">📡 MQTT Console</div>
+            <div id="consoleTitle">📡 MQTT Console - Camera 2</div>
             <div>
+                <button class="header-btn" onclick="clearConsole()">Clear</button>
                 <button class="header-btn" onclick="hideConsole()">Close</button>
             </div>
         </div>
+        <div class="console-filter">
+            <span class="filter-label">🔍 Filter:</span>
+            <span class="filter-status">Camera 2 Only</span>
+            <span style="color: rgba(255,255,255,0.7); font-size: 11px;">Showing only messages with "nCamera": 2</span>
+        </div>
         <div class="console-content" id="consoleContent">
-            <div class="message-info">[SYSTEM] Dashboard console initialized</div>
+            <div class="message-info">[SYSTEM] Console initialized - Filtering messages for Camera 2</div>
         </div>
     </div>
 
@@ -1620,6 +1658,51 @@
         let dashboardCore = null;
         let roomManager = null;
         let controlFactory = null;
+        let currentRoomNumber = 2; // Camera di default
+        
+        // ===== CONSOLE FILTERING =====
+        function isMessageForCurrentRoom(messageData) {
+            // Controlla se il messaggio ha il parametro nCamera corrispondente alla camera corrente
+            if (typeof messageData === 'object' && messageData !== null) {
+                return messageData.nCamera === currentRoomNumber;
+            }
+            return false;
+        }
+        
+        function logFilteredMessage(type, header, data, isFiltered = false) {
+            const consoleContent = document.getElementById('consoleContent');
+            if (!consoleContent) return;
+            
+            const timestamp = new Date().toLocaleTimeString();
+            const messageClass = isFiltered ? 'filtered-message' : '';
+            
+            let messageHtml = `<div class="message-${type} ${messageClass}">`;
+            messageHtml += `[${timestamp}] ${header}`;
+            
+            if (data) {
+                if (typeof data === 'object') {
+                    messageHtml += `<br>${JSON.stringify(data, null, 2)}`;
+                } else {
+                    messageHtml += ` ${data}`;
+                }
+            }
+            
+            if (isFiltered) {
+                messageHtml += ` <span style="color: var(--aman-gold); font-weight: bold;">[CAMERA ${currentRoomNumber}]</span>`;
+            }
+            
+            messageHtml += '</div>';
+            
+            consoleContent.innerHTML += messageHtml;
+            consoleContent.scrollTop = consoleContent.scrollHeight;
+        }
+        
+        function clearConsole() {
+            const consoleContent = document.getElementById('consoleContent');
+            if (consoleContent) {
+                consoleContent.innerHTML = `<div class="message-info">[SYSTEM] Console cleared - Filtering messages for Camera ${currentRoomNumber}</div>`;
+            }
+        }
         
         // ===== INITIALIZATION =====
         document.addEventListener('DOMContentLoaded', async function() {
@@ -1627,12 +1710,36 @@
                 console.log('🚀 Starting AMAN Venice Modular Dashboard...');
                 
                 // Extract room number from URL (room-XX.html)
-                const roomNumber = extractRoomNumber();
-                console.log(`🏠 Detected Room: ${roomNumber}`);
+                currentRoomNumber = extractRoomNumber();
+                console.log(`🏠 Detected Room: ${currentRoomNumber}`);
+                
+                // Update console title
+                const consoleTitle = document.getElementById('consoleTitle');
+                if (consoleTitle) {
+                    consoleTitle.textContent = `📡 MQTT Console - Camera ${currentRoomNumber}`;
+                }
                 
                 // Initialize core system
                 dashboardCore = new AmanDashboardCore();
-                await dashboardCore.init(roomNumber);
+                await dashboardCore.init(currentRoomNumber);
+                
+                // Override the logToConsole method to filter messages
+                const originalLogToConsole = dashboardCore.logToConsole;
+                dashboardCore.logToConsole = function(type, header, data) {
+                    // Check if this is an MQTT message
+                    if (header.includes('MQTT') && data && typeof data === 'object') {
+                        // Check if message is for current room
+                        if (isMessageForCurrentRoom(data)) {
+                            logFilteredMessage(type, header, data, true);
+                        } else {
+                            // Don't log messages for other rooms
+                            return;
+                        }
+                    } else {
+                        // Log system messages normally
+                        logFilteredMessage(type, header, data, false);
+                    }
+                };
                 
                 // Initialize room manager with error handling
                 try {
@@ -1786,19 +1893,35 @@
         window.AmanAPI = {
             getRoomNumber: () => dashboardCore?.roomNumber,
             getRoomName: () => dashboardCore?.roomConfig?.name,
-            sendMessage: (payload) => dashboardCore?.sendMQTTMessage(payload),
+            sendMessage: (payload) => {
+                // Ensure the message includes the current room number
+                if (payload && typeof payload === 'object') {
+                    payload.nCamera = currentRoomNumber;
+                }
+                return dashboardCore?.sendMQTTMessage(payload);
+            },
             isConnected: () => dashboardCore?.connected,
             getControl: (id) => dashboardCore?.getControl(id),
             getAllControls: () => dashboardCore?.getAllControls(),
-            log: (type, header, data) => dashboardCore?.logToConsole(type, header, data),
+            log: (type, header, data) => {
+                // Use the filtered logging function
+                if (data && typeof data === 'object' && isMessageForCurrentRoom(data)) {
+                    logFilteredMessage(type, header, data, true);
+                } else if (!data || typeof data !== 'object') {
+                    logFilteredMessage(type, header, data, false);
+                }
+            },
             
             // Debug
             getCore: () => dashboardCore,
             getManager: () => roomManager,
-            getFactory: () => controlFactory
+            getFactory: () => controlFactory,
+            getCurrentRoom: () => currentRoomNumber,
+            clearConsole: clearConsole
         };
         
-        console.log('✅ AMAN Venice Modular Dashboard System ready');
+        console.log('✅ AMAN Venice Modular Dashboard System ready with filtered console');
+        console.log(`🏠 Current Room: ${currentRoomNumber} - Console will show only messages with "nCamera": ${currentRoomNumber}`);
     </script>
 </body>
 </html>
