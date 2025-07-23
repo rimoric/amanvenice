@@ -1,22 +1,4 @@
 /**
-     * Conversione configurazione JSON nel formato del core - FIXED
-     */
-    convertJSONConfigToCore(jsonConfig) {
-        const coreConfig = {
-            number: jsonConfig.roomNumber,
-            name: jsonConfig.roomName,
-            password: jsonConfig.password,
-            tabs: jsonConfig.tabs,
-            controls: {},
-            mqtt: {
-                topicPub: 'Camere/Hmi',
-                topicSub: 'Camere/Plc'
-            }
-        };
-        
-        // Converte i controlli da ogni tab nel formato core: controls[tabId] = [...]
-        jsonConfig.tabs.forEach(tab => {
-            /**
  * AMAN Venice - Dashboard Core System (COMPLETO E AGGIORNATO)
  * Sistema base modulare per dashboard camere
  * 
@@ -48,9 +30,6 @@ class AmanDashboardCore {
         try {
             this.roomNumber = roomNumber.toString().padStart(2, '0');
             console.log(`🔧 Inizializzazione Dashboard Core per Room ${this.roomNumber}`);
-            
-            // RIMOSSO: Configurazione forzata hardcoded
-            // Ora carica sempre dalla configurazione JSON
             
             // Caricamento configurazione room (PRIORITARIO)
             await this.loadRoomConfig();
@@ -104,90 +83,6 @@ class AmanDashboardCore {
         // Solo se fallisce il caricamento JSON
         console.log(`🔧 STEP 9: Usando configurazione fallback`);
         this.roomConfig = this.getDefaultRoomConfig(parseInt(this.roomNumber));
-    }
-    
-    /**
-     * Configurazione diretta Room 02 (TEMPORANEO)
-     */
-    getRoom02Config() {
-        return {
-            number: 2,
-            name: "Room 02",
-            password: "02",
-            tabs: [
-                {
-                    id: "bedroom",
-                    name: "🛏️ Bedroom", 
-                    subtitle: "Lighting & Climate Control"
-                },
-                {
-                    id: "bathroom",
-                    name: "🚿 Bathroom",
-                    subtitle: "Lighting & Heating Control"
-                },
-                {
-                    id: "settings",
-                    name: "⚙️ Settings",
-                    subtitle: "System Reset & Service Controls"
-                }
-            ],
-            controls: {
-                bedroom: [
-                    {
-                        type: "dali",
-                        name: "Main Light",
-                        mqttName: "CameraLuci",
-                        initialLevel: 50,
-                        initialPower: false
-                    },
-                    {
-                        type: "thermostat", 
-                        name: "Room Climate",
-                        mqttName: "CameraClima",
-                        initialTemp: 22.0,
-                        measuredTemp: 20.5,
-                        initialPower: true,
-                        minTemp: 16,
-                        maxTemp: 28
-                    }
-                ],
-                bathroom: [
-                    {
-                        type: "dali",
-                        name: "Bathroom Lights",
-                        mqttName: "BagnoLuci", 
-                        initialLevel: 30,
-                        initialPower: false
-                    },
-                    {
-                        type: "thermostat",
-                        name: "Bathroom Heating", 
-                        mqttName: "BagnoClima",
-                        initialTemp: 24.0,
-                        measuredTemp: 22.0,
-                        initialPower: false,
-                        minTemp: 18,
-                        maxTemp: 30
-                    }
-                ],
-                settings: [
-                    {
-                        type: "monostable",
-                        name: "Reset Lights",
-                        mqttName: "ResetLuci",
-                        buttonText: "RESET",
-                        executingText: "Resetting lights...",
-                        completedText: "Lights reset completed",
-                        executionTime: 3000,
-                        cooldownTime: 2000
-                    }
-                ]
-            },
-            mqtt: {
-                topicPub: 'Camere/Hmi',
-                topicSub: 'Camere/Plc'
-            }
-        };
     }
     
     /**
