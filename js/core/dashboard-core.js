@@ -179,7 +179,7 @@ class AmanDashboardCore {
                 logoImage.src = logoBase64;
             };
             
-            logoImage.src = 'assets/images/AmanVeniceCameraLogo.png';
+            logoImage.src = 'assets/logos/AmanVeniceCameraLogo.png';
         }, 100);
     }
     
@@ -195,11 +195,7 @@ class AmanDashboardCore {
             console.log(`🔐 Login attempt for Room ${this.roomNumber} with password: "${password}"`);
             console.log(`🔑 Expected password: "${this.roomConfig.password}"`);
             
-            if (this.roomNumber === "02") {
-                console.log(`✅ Login successful for Room ${this.roomNumber} (BYPASS ATTIVO)`);
-                return true;
-            }
-            
+            // Validazione password normale
             if (password !== this.roomConfig.password) {
                 throw new Error(`Invalid password. Please enter "${this.roomConfig.password}" for Room ${this.roomNumber}.`);
             }
