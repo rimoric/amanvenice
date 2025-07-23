@@ -133,6 +133,7 @@
             "maxTemp": 30,
             "fanSpeed": 0
           }
+        },
         {
           "type": "onoff",
           "zone": "heating",
