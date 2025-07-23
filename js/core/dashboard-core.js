@@ -338,12 +338,14 @@ class AmanDashboardCore {
     }
     
     /**
-     * Login della room - BYPASS TEMPORANEO
+     * Login della room - BYPASS TEMPORANEO + DEBUG
      */
     async doLogin(password) {
         try {
-            console.log(`🔐 Login attempt for Room ${this.roomNumber} with password: ${password}`);
-            console.log(`🔑 Expected password: ${this.roomConfig.password}`);
+            console.log(`🔐 Login attempt for Room ${this.roomNumber} with password: "${password}"`);
+            console.log(`🔑 Expected password: "${this.roomConfig.password}"`);
+            console.log(`🔍 Password type: ${typeof this.roomConfig.password}`);
+            console.log(`🔍 RoomConfig:`, this.roomConfig);
             
             // BYPASS: Accetta sempre qualsiasi password per Room 02
             if (this.roomNumber === "02") {
