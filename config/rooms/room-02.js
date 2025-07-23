@@ -13,21 +13,10 @@
           "type": "dali",
           "zone": "lighting",
           "config": {
-            "name": "💡 Main Light",
+            "name": "💡 Main",
             "mqttDevice": "Totale",
             "locale": "Camera",
-            "initialLevel": 75,
-            "initialPower": true
-          }
-        },
-        {
-          "type": "dali",
-          "zone": "lighting",
-          "config": {
-            "name": "🌟 Courtesy Light",
-            "mqttDevice": "Parziale",
-            "locale": "Camera",
-            "initialLevel": 30,
+            "initialLevel": 0,
             "initialPower": false
           }
         },
@@ -35,10 +24,21 @@
           "type": "dali",
           "zone": "lighting",
           "config": {
-            "name": "🛏️ Bed Light",
+            "name": "🌟 Courtesy",
+            "mqttDevice": "Parziale",
+            "locale": "Camera",
+            "initialLevel": 0,
+            "initialPower": false
+          }
+        },
+        {
+          "type": "dali",
+          "zone": "lighting",
+          "config": {
+            "name": "🛏️ Bed",
             "mqttDevice": "Letto",
             "locale": "Camera",
-            "initialLevel": 50,
+            "initialLevel": 0,
             "initialPower": false
           }
         },
@@ -49,7 +49,7 @@
             "name": "💡 Left Abat Jour",
             "mqttDevice": "ComodinoSx",
             "locale": "Camera",
-            "initialLevel": 60,
+            "initialLevel": 0,
             "initialPower": false
           }
         },
@@ -60,7 +60,7 @@
             "name": "💡 Right Abat Jour",
             "mqttDevice": "ComodinoDx",
             "locale": "Camera",
-            "initialLevel": 60,
+            "initialLevel": 0,
             "initialPower": false
           }
         },
@@ -68,7 +68,7 @@
           "type": "dali",
           "zone": "lighting",
           "config": {
-            "name": "💻 Desk Light",
+            "name": "💻 Desk",
             "mqttDevice": "Scrivania",
             "locale": "Camera",
             "initialLevel": 80,
@@ -79,15 +79,15 @@
           "type": "thermostat",
           "zone": "climate",
           "config": {
-            "name": "🌡️ Room Climate",
+            "name": "🌡️ Climate",
             "mqttDevice": "CameraClima",
             "locale": "Camera",
-            "initialTemp": 22.0,
-            "measuredTemp": 20.5,
-            "initialPower": true,
-            "minTemp": 16,
-            "maxTemp": 28,
-            "fanSpeed": 2
+            "initialTemp": 0.0,
+            "measuredTemp": 0.0,
+            "initialPower": false,
+            "minTemp": 10,
+            "maxTemp": 30,
+            "fanSpeed": 0
           }
         }
       ]
@@ -101,10 +101,10 @@
           "type": "dali",
           "zone": "lighting",
           "config": {
-            "name": "💡 Main Light",
+            "name": "💡 Main",
             "mqttDevice": "Totale",
             "locale": "Bagno",
-            "initialLevel": 85,
+            "initialLevel": 0,
             "initialPower": false
           }
         },
@@ -112,13 +112,27 @@
           "type": "dali",
           "zone": "lighting",
           "config": {
-            "name": "🌟 Courtesy Light",
+            "name": "🌟 Courtesy",
             "mqttDevice": "Parziale",
             "locale": "Bagno",
-            "initialLevel": 25,
+            "initialLevel": 0,
             "initialPower": false
           }
         },
+        {
+          "type": "thermostat",
+          "zone": "climate",
+          "config": {
+            "name": "🌡️ Climate",
+            "mqttDevice": "BagnoClima",
+            "locale": "Bagno",
+            "initialTemp": 0.0,
+            "measuredTemp": 0.0,
+            "initialPower": false,
+            "minTemp": 10,
+            "maxTemp": 30,
+            "fanSpeed": 0
+          }
         {
           "type": "onoff",
           "zone": "heating",
