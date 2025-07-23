@@ -1,14 +1,6 @@
 /**
- * AMAN Venice - Dashboard Core System (COMPLETO E AGGIORNATO)
+ * AMAN Venice - Dashboard Core System
  * Sistema base modulare per dashboard camere
- * 
- * Funzionalità:
- * - Gestione configurazioni room
- * - Caricamento configurazione da JSON
- * - Inizializzazione MQTT
- * - Creazione controlli dinamici
- * - Coordinamento moduli
- * - BUG FIX: Caricamento corretto da file JSON
  */
 
 class AmanDashboardCore {
@@ -23,21 +15,13 @@ class AmanDashboardCore {
         console.log('🏨 AMAN Venice Dashboard Core inizializzato (v2.1 - JSON LOADER)');
     }
     
-    /**
-     * Inizializzazione dashboard per room specifica
-     */
     async init(roomNumber) {
         try {
             this.roomNumber = roomNumber.toString().padStart(2, '0');
             console.log(`🔧 Inizializzazione Dashboard Core per Room ${this.roomNumber}`);
             
-            // Caricamento configurazione room (PRIORITARIO)
             await this.loadRoomConfig();
-            
-            // Inizializzazione logo
             this.initializeLogo();
-            
-            // Setup error handling
             this.setupErrorHandling();
             
             console.log(`✅ Dashboard Core pronto per Room ${this.roomNumber}`);
@@ -49,9 +33,6 @@ class AmanDashboardCore {
         }
     }
     
-    /**
-     * Caricamento configurazione room da JSON - FIXED + DEBUG
-     */
     async loadRoomConfig() {
         try {
             console.log(`📋 STEP 1: Caricamento configurazione da config/rooms/room-${this.roomNumber}.js`);
@@ -63,15 +44,12 @@ class AmanDashboardCore {
                 console.log(`📋 STEP 3: Parsing JSON...`);
                 const jsonText = await response.text();
                 console.log(`📋 STEP 4: JSON text length:`, jsonText.length);
-                console.log(`📋 STEP 5: JSON preview:`, jsonText.substring(0, 200));
                 
                 const jsonConfig = JSON.parse(jsonText);
                 console.log(`📋 STEP 6: JSON parsed successfully:`, jsonConfig);
                 
-                // NUOVO: Converti configurazione JSON nel formato core
                 this.roomConfig = this.convertJSONConfigToCore(jsonConfig);
                 console.log(`✅ STEP 7: Configurazione JSON caricata: ${Object.keys(this.roomConfig.controls).map(tab => `${tab}(${this.roomConfig.controls[tab].length})`).join(', ')}`);
-                console.log(`🔍 STEP 8: Final roomConfig.controls:`, this.roomConfig.controls);
                 return;
             } else {
                 console.warn(`⚠️ Response not ok:`, response.status, response.statusText);
@@ -80,14 +58,10 @@ class AmanDashboardCore {
             console.warn(`⚠️ Errore caricamento configurazione JSON:`, error);
         }
         
-        // Solo se fallisce il caricamento JSON
         console.log(`🔧 STEP 9: Usando configurazione fallback`);
         this.roomConfig = this.getDefaultRoomConfig(parseInt(this.roomNumber));
     }
     
-    /**
-     * Conversione configurazione JSON nel formato del core - FIXED
-     */
     convertJSONConfigToCore(jsonConfig) {
         const coreConfig = {
             number: jsonConfig.roomNumber,
@@ -101,18 +75,15 @@ class AmanDashboardCore {
             }
         };
         
-        // Converte i controlli da ogni tab nel formato core: controls[tabId] = [...]
         jsonConfig.tabs.forEach(tab => {
             if (tab.controls && tab.controls.length > 0) {
                 coreConfig.controls[tab.id] = tab.controls.map(control => {
-                    // NUOVO: Estrazione sicura dei valori dal JSON
                     const coreControl = {
                         type: control.type,
                         name: control.config?.name || 'Unnamed Control',
                         mqttName: control.config?.mqttDevice || control.config?.mqttName || 'Unknown'
                     };
                     
-                    // NUOVO: Copia tutti i campi config al livello principale
                     if (control.config) {
                         Object.keys(control.config).forEach(key => {
                             if (key !== 'name' && key !== 'mqttDevice' && key !== 'mqttName') {
@@ -125,18 +96,13 @@ class AmanDashboardCore {
                 });
                 
                 console.log(`🔄 Tab ${tab.id} converted: ${coreConfig.controls[tab.id].length} controls`);
-                console.log(`🔍 First control:`, coreConfig.controls[tab.id][0]);
             }
         });
         
         console.log(`🔄 Configurazione JSON convertita per il core`);
-        console.log(`🔍 Final controls structure:`, coreConfig.controls);
         return coreConfig;
     }
     
-    /**
-     * Configurazione default room (FALLBACK ONLY)
-     */
     getDefaultRoomConfig(roomNum) {
         console.log(`🔧 Usando configurazione fallback per Room ${roomNum}`);
         
@@ -179,9 +145,6 @@ class AmanDashboardCore {
         };
     }
     
-    /**
-     * Inizializzazione logo
-     */
     initializeLogo() {
         setTimeout(() => {
             const logoImage = document.getElementById('logoImage');
@@ -198,7 +161,6 @@ class AmanDashboardCore {
                 logoFallback.style.display = 'flex';
                 logoImage.style.display = 'none';
                 
-                // Genera logo SVG con numero room
                 const logoBase64 = 'data:image/svg+xml;base64,' + btoa(`
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
                         <defs>
@@ -217,14 +179,10 @@ class AmanDashboardCore {
                 logoImage.src = logoBase64;
             };
             
-            // Prova prima caricamento logo esterno
             logoImage.src = 'assets/logos/AmanVeniceCameraLogo.png';
         }, 100);
     }
     
-    /**
-     * Setup error handling
-     */
     setupErrorHandling() {
         window.addEventListener('error', (event) => {
             console.error('Global error:', event.error);
@@ -232,23 +190,16 @@ class AmanDashboardCore {
         });
     }
     
-    /**
-     * Login della room - BYPASS TEMPORANEO + DEBUG
-     */
     async doLogin(password) {
         try {
             console.log(`🔐 Login attempt for Room ${this.roomNumber} with password: "${password}"`);
             console.log(`🔑 Expected password: "${this.roomConfig.password}"`);
-            console.log(`🔍 Password type: ${typeof this.roomConfig.password}`);
-            console.log(`🔍 RoomConfig:`, this.roomConfig);
             
-            // BYPASS: Accetta sempre qualsiasi password per Room 02
             if (this.roomNumber === "02") {
                 console.log(`✅ Login successful for Room ${this.roomNumber} (BYPASS ATTIVO)`);
                 return true;
             }
             
-            // Validazione password normale per altre room
             if (password !== this.roomConfig.password) {
                 throw new Error(`Invalid password. Please enter "${this.roomConfig.password}" for Room ${this.roomNumber}.`);
             }
@@ -262,9 +213,6 @@ class AmanDashboardCore {
         }
     }
     
-    /**
-     * Caricamento dashboard
-     */
     async loadDashboard() {
         try {
             this.updateLoadingStatus('Loading room configuration...');
@@ -296,17 +244,12 @@ class AmanDashboardCore {
         }
     }
     
-    /**
-     * Inizializzazione MQTT
-     */
     async initializeMQTT() {
         try {
             console.log('📡 Initializing MQTT system...');
             
-            // Usa la classe MQTTManager dal room-template.html
             this.mqttManager = new MQTTManager();
             
-            // Setup handlers
             this.mqttManager.onMessage((topic, data) => {
                 this.handleMQTTMessage(topic, data);
             });
@@ -325,9 +268,6 @@ class AmanDashboardCore {
         }
     }
     
-    /**
-     * Connessione sistemi
-     */
     async connectSystems() {
         try {
             console.log('🔌 Connecting to room systems...');
@@ -347,9 +287,6 @@ class AmanDashboardCore {
         }
     }
     
-    /**
-     * Caricamento di tutti i controlli
-     */
     async loadAllControls() {
         try {
             const { controls } = this.roomConfig;
@@ -374,14 +311,10 @@ class AmanDashboardCore {
         }
     }
     
-    /**
-     * Caricamento controllo singolo - AGGIORNATO
-     */
     async loadControl(containerId, config, section) {
         try {
             const controlId = containerId.replace(/-/g, '_');
             
-            // Creazione controllo in base al tipo
             const control = {
                 id: controlId,
                 containerId: containerId,
@@ -392,12 +325,10 @@ class AmanDashboardCore {
                 config: config
             };
             
-            // Inizializzazione in base al tipo - AGGIORNATA
             switch (config.type) {
                 case 'dali':
-                    // MIGLIORATO: Gestione separata level e setLevel
                     control.level = config.initialPower ? config.initialLevel : 0;
-                    control.setLevel = config.initialLevel; // setLevel sempre mantiene il valore impostato
+                    control.setLevel = config.initialLevel;
                     control.power = config.initialPower;
                     control.locale = section === 'bedroom' ? 'Camera' : 
                                    section === 'bathroom' ? 'Bagno' : 'Soggiorno';
@@ -414,7 +345,6 @@ class AmanDashboardCore {
                     break;
                     
                 case 'thermostat':
-                    // MIGLIORATO: Arrotondamento a step 0.5°C
                     control.temperature = Math.round((config.initialTemp || 22) * 2) / 2;
                     control.measuredTemp = Math.round((config.measuredTemp || 20.0) * 2) / 2;
                     control.power = config.initialPower || false;
@@ -444,21 +374,16 @@ class AmanDashboardCore {
         }
     }
     
-    /**
-     * Gestione messaggio MQTT
-     */
     handleMQTTMessage(topic, jsonData) {
         try {
             console.log(`📨 Processing message from ${topic}:`, jsonData);
             this.logToConsole('received', 'MQTT Received', JSON.stringify(jsonData, null, 2));
             
-            // Solo messaggi per questa room
             if (jsonData.nCamera && jsonData.nCamera !== parseInt(this.roomNumber)) {
                 console.log(`📍 Ignoring message for Room ${jsonData.nCamera}`);
                 return;
             }
             
-            // Identificazione tipo messaggio e parsing
             this.parseAndHandleMessage(jsonData);
             
             this.lastUpdateTime = new Date().toLocaleString();
@@ -470,9 +395,6 @@ class AmanDashboardCore {
         }
     }
     
-    /**
-     * Parser e gestore messaggi per tipo
-     */
     parseAndHandleMessage(jsonData) {
         if (!jsonData.sNome) {
             console.warn('⚠️ Message without sNome field');
@@ -497,14 +419,10 @@ class AmanDashboardCore {
         }
     }
     
-    /**
-     * Gestione messaggi DALI - IMPLEMENTAZIONE COMPLETA E MIGLIORATA
-     */
     handleDALIMessage(jsonData) {
         try {
             console.log(`💡 DALI message received for Room ${jsonData.nCamera} - Section: ${jsonData.sNome}`);
             
-            // Routing per sezione specifica
             switch (jsonData.sNome) {
                 case 'CameraLuci':
                     this.updateBedroomLightsFromMQTT(jsonData);
@@ -523,7 +441,6 @@ class AmanDashboardCore {
                     return;
             }
             
-            // Log successo
             this.logToConsole('info', 'DALI Updated', `${jsonData.sNome} lights updated for Room ${jsonData.nCamera}`);
             
         } catch (error) {
@@ -532,24 +449,19 @@ class AmanDashboardCore {
         }
     }
     
-    /**
-     * Aggiornamento luci Camera (Bedroom) da MQTT - MIGLIORATO
-     */
     updateBedroomLightsFromMQTT(jsonData) {
         try {
             console.log('🛏️ Updating bedroom lights from MQTT');
             
-            // Mapping campi MQTT → ID controlli bedroom
             const lightMapping = {
-                'nTotaLiv': 'bedroom_mainlight_0',           // 💡 Main Light
-                'nParzLiv': 'bedroom_courtesylight_1',       // 🌟 Courtesy Light  
-                'nLettLiv': 'bedroom_bedlight_2',            // 🛏️ Bed Light
-                'nCoSxLiv': 'bedroom_leftabatjour_3',        // 💡 Left Abat Jour
-                'nCoDxLiv': 'bedroom_rightabatjour_4',       // 💡 Right Abat Jour
-                'nScriLiv': 'bedroom_desklight_5'            // 💻 Desk Light
+                'nTotaLiv': 'bedroom_mainlight_0',
+                'nParzLiv': 'bedroom_courtesylight_1',
+                'nLettLiv': 'bedroom_bedlight_2',
+                'nCoSxLiv': 'bedroom_leftabatjour_3',
+                'nCoDxLiv': 'bedroom_rightabatjour_4',
+                'nScriLiv': 'bedroom_desklight_5'
             };
             
-            // Aggiorna ogni controllo luce
             let updatedCount = 0;
             Object.entries(lightMapping).forEach(([mqttField, controlId]) => {
                 if (jsonData.hasOwnProperty(mqttField)) {
@@ -569,25 +481,15 @@ class AmanDashboardCore {
         }
     }
     
-    /**
-     * Aggiornamento luci Bagno (Bathroom) da MQTT - MIGLIORATO
-     */
     updateBathroomLightsFromMQTT(jsonData) {
         try {
             console.log('🚿 Updating bathroom lights from MQTT');
             
-            // Mapping campi MQTT → ID controlli bathroom
             const lightMapping = {
-                'nTotaLiv': 'bathroom_mainlight_0',          // 💡 Main Light
-                'nParzLiv': 'bathroom_courtesylight_1'       // 🌟 Courtesy Light
+                'nTotaLiv': 'bathroom_mainlight_0',
+                'nParzLiv': 'bathroom_courtesylight_1'
             };
             
-            // Per Room 19 (configurazione speciale)
-            if (parseInt(this.roomNumber) === 19) {
-                lightMapping['nSpecLiv'] = 'bathroom_speciallight_1';  // 🌟 Special Light
-            }
-            
-            // Aggiorna ogni controllo luce
             let updatedCount = 0;
             Object.entries(lightMapping).forEach(([mqttField, controlId]) => {
                 if (jsonData.hasOwnProperty(mqttField)) {
@@ -607,22 +509,17 @@ class AmanDashboardCore {
         }
     }
     
-    /**
-     * Aggiornamento luci Soggiorno (Living Room) da MQTT - MIGLIORATO
-     */
     updateLivingRoomLightsFromMQTT(jsonData) {
         try {
             console.log('🏛️ Updating living room lights from MQTT');
             
-            // Mapping campi MQTT → ID controlli living room
             const lightMapping = {
-                'nTotaLiv': 'living_mainlight_0',            // 💡 Main Light
-                'nParzLiv': 'living_courtesylight_1',        // 🌟 Courtesy Light
-                'nDivLiv': 'living_sofalight_2',             // 🛋️ Sofa Light
-                'nTvLiv': 'living_tvlight_3'                 // 📺 TV Light
+                'nTotaLiv': 'living_mainlight_0',
+                'nParzLiv': 'living_courtesylight_1',
+                'nDivLiv': 'living_sofalight_2',
+                'nTvLiv': 'living_tvlight_3'
             };
             
-            // Aggiorna ogni controllo luce
             let updatedCount = 0;
             Object.entries(lightMapping).forEach(([mqttField, controlId]) => {
                 if (jsonData.hasOwnProperty(mqttField)) {
@@ -642,45 +539,35 @@ class AmanDashboardCore {
         }
     }
     
-    /**
-     * Aggiornamento singolo controllo DALI da MQTT - MIGLIORATO
-     */
     updateDALIControlFromMQTT(controlId, level) {
         try {
-            // Trova il controllo
             const control = this.getControl(controlId);
             if (!control) {
                 console.warn(`⚠️ Control ${controlId} not found for MQTT update`);
                 return false;
             }
             
-            // Verifica che sia un controllo DALI
             if (control.type !== 'dali') {
                 console.warn(`⚠️ Control ${controlId} is not a DALI control`);
                 return false;
             }
             
-            // Validazione livello
             const validLevel = Math.max(0, Math.min(100, Math.round(level)));
             
-            // Aggiorna dati controllo - MIGLIORATO con setLevel
             const oldLevel = control.level;
             const oldPower = control.power;
             
             control.level = validLevel;
             control.power = validLevel > 0;
             
-            // NUOVO: Aggiorna anche setLevel quando arriva da MQTT
             if (validLevel > 0) {
                 control.setLevel = validLevel;
             }
             
-            // Log cambiamento
             if (oldLevel !== validLevel || oldPower !== control.power) {
                 console.log(`🔄 ${controlId}: ${oldLevel}%→${validLevel}% (${oldPower ? 'ON' : 'OFF'}→${control.power ? 'ON' : 'OFF'})`);
             }
             
-            // Aggiorna UI tramite Control Factory (senza inviare MQTT)
             this.updateDALIDisplayFromMQTT(controlId, control);
             
             return true;
@@ -691,29 +578,22 @@ class AmanDashboardCore {
         }
     }
     
-    /**
-     * Aggiornamento display DALI da MQTT (senza loop MQTT) - MIGLIORATO
-     */
     updateDALIDisplayFromMQTT(controlId, control) {
         try {
-            // Inizializza setLevel se non esiste
             if (!control.setLevel) {
                 control.setLevel = control.level;
             }
             
-            // Update level display
             const display = document.getElementById(`${controlId}_display`);
             if (display) {
                 display.innerHTML = `${control.level}<span class="level-unit">%</span>`;
                 display.classList.toggle('on', control.power);
                 display.classList.toggle('off', !control.power);
                 
-                // Visual feedback per MQTT update
                 display.style.border = '2px solid #4CAF50';
                 setTimeout(() => display.style.border = '', 1000);
             }
             
-            // Update slider (mostra setLevel, non level corrente)
             const fill = document.getElementById(`${controlId}_fill`);
             const thumb = document.getElementById(`${controlId}_thumb`);
             if (fill && thumb) {
@@ -722,19 +602,16 @@ class AmanDashboardCore {
                 thumb.style.left = `calc(${displayLevel}% - 12px)`;
                 thumb.classList.toggle('active', control.power);
                 
-                // Visual feedback
                 fill.style.backgroundColor = '#4CAF50';
                 setTimeout(() => fill.style.backgroundColor = '', 1000);
             }
             
-            // Update buttons
             const onBtn = document.getElementById(`${controlId}_on`);
             const offBtn = document.getElementById(`${controlId}_off`);
             if (onBtn && offBtn) {
                 onBtn.classList.toggle('active', control.power);
                 offBtn.classList.toggle('active', !control.power);
                 
-                // Visual feedback on state change
                 const activeBtn = control.power ? onBtn : offBtn;
                 activeBtn.style.boxShadow = '0 0 10px #4CAF50';
                 setTimeout(() => activeBtn.style.boxShadow = '', 1000);
@@ -747,14 +624,10 @@ class AmanDashboardCore {
         }
     }
     
-    /**
-     * Gestione messaggi Clima - MIGLIORATO
-     */
     handleClimateMessage(jsonData) {
         try {
             console.log(`🌡️ Climate message received for Room ${jsonData.nCamera}`);
             
-            // Parse camera climate data
             if (jsonData.hasOwnProperty('nCameraMis') && jsonData.hasOwnProperty('nCameraSet')) {
                 const cameraClimate = {
                     measuredTemp: this.convertTemperature(jsonData.nCameraMis),
@@ -769,7 +642,6 @@ class AmanDashboardCore {
                 console.log(`🛏️ Camera climate updated:`, cameraClimate);
             }
             
-            // Parse bagno climate data
             if (jsonData.hasOwnProperty('nBagnoMis') && jsonData.hasOwnProperty('nBagnoSet')) {
                 const bagnoClimate = {
                     measuredTemp: this.convertTemperature(jsonData.nBagnoMis),
@@ -784,21 +656,6 @@ class AmanDashboardCore {
                 console.log(`🚿 Bagno climate updated:`, bagnoClimate);
             }
             
-            // Parse soggiorno climate data (se presente)
-            if (jsonData.hasOwnProperty('nSoggiornoMis') && jsonData.hasOwnProperty('nSoggiornoSet')) {
-                const soggiornoClimate = {
-                    measuredTemp: this.convertTemperature(jsonData.nSoggiornoMis),
-                    setpointTemp: this.convertTemperature(jsonData.nSoggiornoSet),
-                    ventilation: jsonData.nSoggiornoVen || 0,
-                    heating: jsonData.nSoggiornoCal || 0,
-                    cooling: jsonData.nSoggiornoFre || 0,
-                    isOn: jsonData.nSoggiornoSet > 0
-                };
-                
-                this.updateThermostatFromMQTT('living', soggiornoClimate);
-                console.log(`🏛️ Soggiorno climate updated:`, soggiornoClimate);
-            }
-            
             this.logToConsole('info', 'Climate Updated', `Room ${jsonData.nCamera} climate data processed`);
             
         } catch (error) {
@@ -807,24 +664,16 @@ class AmanDashboardCore {
         }
     }
     
-    /**
-     * Conversione temperatura (divide per 10) - MIGLIORATO
-     */
     convertTemperature(rawValue) {
         if (rawValue === null || rawValue === undefined || isNaN(rawValue)) {
-            return 20.0; // Default temperature
+            return 20.0;
         }
-        // Arrotonda a step 0.5°C
         const tempValue = rawValue / 10;
-        return Math.round(tempValue * 2) / 2; // Round to 0.5°C step
+        return Math.round(tempValue * 2) / 2;
     }
     
-    /**
-     * Aggiorna thermostat da messaggio MQTT - MIGLIORATO
-     */
     updateThermostatFromMQTT(section, climateData) {
         try {
-            // Trova il controllo thermostat per questa sezione
             const controls = Array.from(this.controls.values())
                 .filter(control => control.section === section && control.type === 'thermostat');
             
@@ -835,15 +684,12 @@ class AmanDashboardCore {
             
             const thermostatControl = controls[0];
             
-            // Aggiorna dati controllo - MIGLIORATO con step 0.5°C
             thermostatControl.temperature = Math.round(climateData.setpointTemp * 2) / 2;
             thermostatControl.measuredTemp = Math.round(climateData.measuredTemp * 2) / 2;
             thermostatControl.power = climateData.isOn;
             
-            // Determina stato (heating/cooling/neutral)
             thermostatControl.climateState = this.determineClimateState(climateData);
             
-            // Notifica control factory per aggiornamento UI
             if (window.roomControls && window.roomControls.updateThermostatFromMQTT) {
                 window.roomControls.updateThermostatFromMQTT(thermostatControl.id, thermostatControl);
             }
@@ -855,9 +701,6 @@ class AmanDashboardCore {
         }
     }
     
-    /**
-     * Determina stato clima (heating/cooling/neutral)
-     */
     determineClimateState(climateData) {
         const tempDiff = climateData.setpointTemp - climateData.measuredTemp;
         const tolerance = 0.5;
@@ -866,14 +709,12 @@ class AmanDashboardCore {
             return 'off';
         }
         
-        // Controllo attivo heating/cooling
         if (climateData.heating > 500) {
             return 'heating';
         } else if (climateData.cooling > 500) {
             return 'cooling';
         }
         
-        // Fallback su differenza temperatura
         if (Math.abs(tempDiff) <= tolerance) {
             return 'neutral';
         } else if (tempDiff > tolerance) {
@@ -883,9 +724,6 @@ class AmanDashboardCore {
         }
     }
     
-    /**
-     * Invio messaggio MQTT
-     */
     sendMQTTMessage(payload) {
         payload.nCamera = parseInt(this.roomNumber);
         payload.Timestamp = new Date().toISOString();
@@ -903,9 +741,6 @@ class AmanDashboardCore {
         }
     }
     
-    /**
-     * Aggiornamento stato connessione
-     */
     updateConnectionStatus(connected, error = null) {
         this.connected = connected;
         
@@ -929,9 +764,6 @@ class AmanDashboardCore {
         this.updateInfoModal();
     }
     
-    /**
-     * Aggiornamento status loading
-     */
     updateLoadingStatus(message) {
         const details = document.getElementById('loadingDetails');
         if (details) {
@@ -940,9 +772,6 @@ class AmanDashboardCore {
         console.log('⏳', message);
     }
     
-    /**
-     * Aggiornamento info modal
-     */
     updateInfoModal() {
         const elements = {
             infoRoomNumber: this.roomNumber,
@@ -966,9 +795,6 @@ class AmanDashboardCore {
         });
     }
     
-    /**
-     * Log to console
-     */
     logToConsole(type, header, data) {
         const content = document.getElementById('consoleContent');
         if (!content) return;
@@ -1010,41 +836,27 @@ class AmanDashboardCore {
         content.appendChild(messageDiv);
         content.scrollTop = content.scrollHeight;
         
-        // Keep only last 50 messages
         const messages = content.querySelectorAll('div');
         if (messages.length > 50) {
             messages[0].remove();
         }
     }
     
-    /**
-     * Utility sleep
-     */
     sleep(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
     
-    /**
-     * Get room config
-     */
     getRoomConfig() {
         return this.roomConfig;
     }
     
-    /**
-     * Get control by ID
-     */
     getControl(controlId) {
         return this.controls.get(controlId);
     }
     
-    /**
-     * Get all controls
-     */
     getAllControls() {
         return Array.from(this.controls.values());
     }
 }
 
-// Export globale
 window.AmanDashboardCore = AmanDashboardCore;
