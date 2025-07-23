@@ -1,12 +1,13 @@
 /**
- * AMAN Venice - MQTT Message Handlers
- * Gestione ricezione e smistamento messaggi MQTT
+ * AMAN Venice - MQTT Message Handlers - VERSIONE CON FILTRO CAMERA
+ * Gestione ricezione e smistamento messaggi MQTT con filtro per camera specifica
  * 
  * Coordina:
  * - Ricezione messaggi dal topic Camere/Plc
  * - Parsing e validazione
+ * - Filtro per camera specifica (nCamera)
  * - Smistamento ai controlli specifici
- * - Logging e debug
+ * - Logging e debug filtrato
  */
 
 class MQTTHandlers {
@@ -14,8 +15,9 @@ class MQTTHandlers {
         this.registeredHandlers = new Map();
         this.messageHistory = [];
         this.maxHistorySize = 100;
+        this.currentRoomNumber = null; // Camera per cui filtrare i messaggi
         
-        console.log('🎯 AMAN Venice MQTT Handlers inizializzato');
+        console.log('🎯 AMAN Venice MQTT Handlers inizializzato con filtro camera');
     }
     
     /**
@@ -29,6 +31,9 @@ class MQTTHandlers {
         
         this.mqttManager = mqttManager;
         
+        // Estrai numero camera dalla dashboard (se disponibile)
+        this.detectCurrentRoom();
+        
         // Registrazione handler principale per tutti i messaggi
         this.mqttManager.onMessage((topic, data) => {
             this.processMessage(topic, data);
@@ -39,31 +44,81 @@ class MQTTHandlers {
             this.handleConnectionStatus(connected, error);
         });
         
-        console.log('✅ MQTT Handlers collegati al manager');
+        console.log(`✅ MQTT Handlers collegati al manager - Filtro attivo per Camera ${this.currentRoomNumber}`);
         return true;
     }
     
     /**
-     * Elaborazione messaggio ricevuto
+     * Rileva numero camera corrente dalla dashboard
+     */
+    detectCurrentRoom() {
+        // Prova a rilevare dalla dashboard globale
+        if (window.AmanDashboard && window.AmanDashboard.currentRoomNumber) {
+            this.currentRoomNumber = window.AmanDashboard.currentRoomNumber;
+        } 
+        // Prova a rilevare dall'API globale
+        else if (window.AmanAPI && window.AmanAPI.getCurrentRoomNumber) {
+            this.currentRoomNumber = window.AmanAPI.getCurrentRoomNumber();
+        }
+        // Prova a rilevare dal nome file URL
+        else {
+            const filename = window.location.pathname.split('/').pop();
+            const match = filename.match(/room-(\d+)/);
+            this.currentRoomNumber = match ? parseInt(match[1]) : 2; // Default camera 2
+        }
+        
+        console.log(`🏠 Camera rilevata per filtro: ${this.currentRoomNumber}`);
+    }
+    
+    /**
+     * Verifica se il messaggio è per la camera corrente
+     */
+    isMessageForCurrentRoom(messageData) {
+        if (!messageData || typeof messageData !== 'object') {
+            return false;
+        }
+        
+        // Se non c'è nCamera nel messaggio, considera come messaggio di sistema (da mostrare)
+        if (!messageData.hasOwnProperty('nCamera')) {
+            return true;
+        }
+        
+        // Controlla se nCamera corrisponde alla camera corrente
+        return messageData.nCamera === this.currentRoomNumber;
+    }
+    
+    /**
+     * Elaborazione messaggio ricevuto con filtro
      */
     processMessage(topic, jsonData) {
         try {
-            // Log messaggio ricevuto
-            console.log(`📨 Elaborazione messaggio da ${topic}:`, jsonData);
+            // FILTRO PRINCIPALE: verifica se il messaggio è per la camera corrente
+            if (!this.isMessageForCurrentRoom(jsonData)) {
+                // Log per debug (ma non nella console utente)
+                console.log(`🔍 Messaggio filtrato - Camera ${jsonData.nCamera || 'unknown'} (attesa: ${this.currentRoomNumber})`);
+                return; // Ignora il messaggio
+            }
             
-            // Aggiunta alla storia
+            // Log messaggio ricevuto (solo per camera corrente)
+            console.log(`📨 Elaborazione messaggio da ${topic} per Camera ${this.currentRoomNumber}:`, jsonData);
+            
+            // Log nella console utente
+            this.logToUserConsole('received', `MQTT Message [Camera ${this.currentRoomNumber}]`, jsonData);
+            
+            // Aggiunta alla storia (solo messaggi per camera corrente)
             this.addToHistory(topic, jsonData);
             
             // Validazione messaggio
             const validation = MQTTProtocol.validateMessage(jsonData);
             if (!validation.valid) {
                 console.warn('⚠️ Messaggio non valido:', validation.errors);
+                this.logToUserConsole('error', 'Messaggio non valido', validation.errors.join(', '));
                 return;
             }
             
             // Identificazione tipo messaggio
             const messageType = MQTTProtocol.identifyMessageType(jsonData);
-            console.log(`🔍 Tipo messaggio identificato: ${messageType}`);
+            console.log(`🔍 Tipo messaggio identificato: ${messageType} per Camera ${this.currentRoomNumber}`);
             
             // Smistamento in base al tipo
             switch (messageType) {
@@ -85,10 +140,31 @@ class MQTTHandlers {
                     
                 default:
                     console.warn(`⚠️ Tipo messaggio non gestito: ${messageType}`);
+                    this.logToUserConsole('info', `Messaggio tipo: ${messageType}`, jsonData);
             }
             
         } catch (error) {
             console.error('❌ Errore elaborazione messaggio:', error);
+            this.logToUserConsole('error', 'Errore elaborazione', error.message);
+        }
+    }
+    
+    /**
+     * Log nella console utente (se disponibile)
+     */
+    logToUserConsole(type, header, data) {
+        // Prova a usare la funzione di log della dashboard
+        if (window.AmanDashboard && typeof window.AmanDashboard.logToConsole === 'function') {
+            window.AmanDashboard.logToConsole(type, header, data);
+        }
+        // Prova a usare l'API globale
+        else if (window.AmanAPI && typeof window.AmanAPI.log === 'function') {
+            window.AmanAPI.log(type, header, data);
+        }
+        // Fallback alla console browser
+        else {
+            const timestamp = new Date().toLocaleTimeString();
+            console.log(`[${timestamp}] ${header}:`, data);
         }
     }
     
@@ -105,6 +181,7 @@ class MQTTHandlers {
             }
             
             console.log(`💡 Gestione luci DALI Camera ${parsedData.roomNumber} (${parsedData.roomType})`);
+            this.logToUserConsole('info', `DALI Lights Update`, `Camera ${parsedData.roomNumber} - ${parsedData.roomType}`);
             
             // Notifica handlers DALI registrati
             this.notifyHandlers('DALI_LIGHTS', parsedData);
@@ -117,32 +194,36 @@ class MQTTHandlers {
             
         } catch (error) {
             console.error('❌ Errore gestione messaggio DALI:', error);
+            this.logToUserConsole('error', 'Errore DALI', error.message);
         }
     }
     
     /**
-     * Gestione messaggi Climate (preparato per implementazione futura)
+     * Gestione messaggi Climate
      */
     handleClimateMessage(jsonData) {
         console.log(`🌡️ Messaggio Climate ricevuto per Camera ${jsonData.nCamera} - ${jsonData.sNome}`);
+        this.logToUserConsole('info', `Climate Update`, `Camera ${jsonData.nCamera} - ${jsonData.sNome}`);
         // TODO: Implementazione futura per termostati
         this.notifyHandlers('CLIMATE', jsonData);
     }
     
     /**
-     * Gestione messaggi On/Off (preparato per implementazione futura)
+     * Gestione messaggi On/Off
      */
     handleOnOffMessage(jsonData) {
         console.log(`🔌 Messaggio On/Off ricevuto per Camera ${jsonData.nCamera} - ${jsonData.sNome}`);
+        this.logToUserConsole('info', `On/Off Update`, `Camera ${jsonData.nCamera} - ${jsonData.sNome}`);
         // TODO: Implementazione futura per controlli On/Off
         this.notifyHandlers('ONOFF', jsonData);
     }
     
     /**
-     * Gestione messaggi Monostable (preparato per implementazione futura)
+     * Gestione messaggi Monostable
      */
     handleMonostableMessage(jsonData) {
         console.log(`⚡ Messaggio Monostable ricevuto per Camera ${jsonData.nCamera} - ${jsonData.sNome}`);
+        this.logToUserConsole('info', `Monostable Update`, `Camera ${jsonData.nCamera} - ${jsonData.sNome}`);
         // TODO: Implementazione futura per comandi monostabili
         this.notifyHandlers('MONOSTABLE', jsonData);
     }
@@ -152,9 +233,11 @@ class MQTTHandlers {
      */
     handleConnectionStatus(connected, error) {
         if (connected) {
-            console.log('✅ MQTT connesso - Handlers attivi');
+            console.log('✅ MQTT connesso - Handlers attivi con filtro camera');
+            this.logToUserConsole('info', 'MQTT Connected', `Filtro attivo per Camera ${this.currentRoomNumber}`);
         } else {
             console.warn('⚠️ MQTT disconnesso - Handlers inattivi:', error);
+            this.logToUserConsole('error', 'MQTT Disconnected', error || 'Connection lost');
         }
         
         // Notifica handlers stato connessione
@@ -214,14 +297,15 @@ class MQTTHandlers {
     }
     
     /**
-     * Aggiunta messaggio alla storia
+     * Aggiunta messaggio alla storia (solo per camera corrente)
      */
     addToHistory(topic, data) {
         const historyItem = {
             timestamp: new Date().toISOString(),
             topic: topic,
             data: data,
-            messageType: MQTTProtocol.identifyMessageType(data)
+            messageType: MQTTProtocol.identifyMessageType(data),
+            roomNumber: data.nCamera || this.currentRoomNumber
         };
         
         this.messageHistory.unshift(historyItem);
@@ -233,19 +317,21 @@ class MQTTHandlers {
     }
     
     /**
-     * Recupero storia messaggi
+     * Recupero storia messaggi (solo per camera corrente)
      */
     getMessageHistory(messageType = null, roomNumber = null) {
         let filtered = this.messageHistory;
         
-        if (messageType) {
-            filtered = filtered.filter(item => item.messageType === messageType);
+        // Filtra per camera corrente se non specificato diversamente
+        const targetRoom = roomNumber !== null ? roomNumber : this.currentRoomNumber;
+        if (targetRoom !== null) {
+            filtered = filtered.filter(item => 
+                item.roomNumber === targetRoom
+            );
         }
         
-        if (roomNumber) {
-            filtered = filtered.filter(item => 
-                item.data.nCamera === roomNumber
-            );
+        if (messageType) {
+            filtered = filtered.filter(item => item.messageType === messageType);
         }
         
         return filtered;
@@ -257,30 +343,45 @@ class MQTTHandlers {
     clearHistory() {
         this.messageHistory = [];
         console.log('🧹 Storia messaggi pulita');
+        this.logToUserConsole('info', 'Message History Cleared', 'All message history cleared');
     }
     
     /**
-     * Statistiche messaggi
+     * Statistiche messaggi (solo per camera corrente)
      */
     getStatistics() {
+        const roomMessages = this.getMessageHistory();
+        
         const stats = {
-            totalMessages: this.messageHistory.length,
+            currentRoom: this.currentRoomNumber,
+            totalMessages: roomMessages.length,
             byType: {},
-            byRoom: {},
-            lastMessage: this.messageHistory[0] || null
+            lastMessage: roomMessages[0] || null,
+            filterActive: true
         };
         
-        this.messageHistory.forEach(item => {
+        roomMessages.forEach(item => {
             // Conteggio per tipo
             stats.byType[item.messageType] = (stats.byType[item.messageType] || 0) + 1;
-            
-            // Conteggio per camera
-            if (item.data.nCamera) {
-                stats.byRoom[item.data.nCamera] = (stats.byRoom[item.data.nCamera] || 0) + 1;
-            }
         });
         
         return stats;
+    }
+    
+    /**
+     * Cambia camera di filtro
+     */
+    setCurrentRoom(roomNumber) {
+        const oldRoom = this.currentRoomNumber;
+        this.currentRoomNumber = parseInt(roomNumber);
+        
+        console.log(`🔄 Filtro camera cambiato da ${oldRoom} a ${this.currentRoomNumber}`);
+        this.logToUserConsole('info', 'Filter Changed', `Now filtering for Camera ${this.currentRoomNumber}`);
+        
+        // Pulisci la console e mostra il nuovo stato
+        if (window.AmanDashboard && typeof window.AmanDashboard.clearConsole === 'function') {
+            window.AmanDashboard.clearConsole();
+        }
     }
     
     /**
@@ -295,16 +396,17 @@ class MQTTHandlers {
     }
     
     /**
-     * Debug: Simulazione messaggio di test
+     * Debug: Simulazione messaggio di test per camera corrente
      */
-    simulateMessage(messageType = 'DALI_LIGHTS', roomNumber = 1) {
+    simulateMessage(messageType = 'DALI_LIGHTS', roomNumber = null) {
+        const targetRoom = roomNumber || this.currentRoomNumber;
         let testMessage;
         
         switch (messageType) {
             case 'DALI_LIGHTS':
                 testMessage = {
                     "Timestamp": new Date().toISOString(),
-                    "nCamera": roomNumber,
+                    "nCamera": targetRoom,
                     "sNome": "CameraLuci",
                     "nTotaLiv": 75,
                     "nTotaSet": 80,
@@ -321,13 +423,60 @@ class MQTTHandlers {
                 };
                 break;
                 
+            case 'ENERGIA':
+                testMessage = {
+                    "Timestamp": new Date().toISOString(),
+                    "nCamera": targetRoom,
+                    "sNome": "Energia",
+                    "nGen": Math.floor(Math.random() * 1000)
+                };
+                break;
+                
             default:
                 console.warn('⚠️ Tipo messaggio simulazione non supportato');
                 return;
         }
         
-        console.log(`🧪 Simulazione messaggio ${messageType} per Camera ${roomNumber}`);
+        console.log(`🧪 Simulazione messaggio ${messageType} per Camera ${targetRoom}`);
         this.processMessage('Camere/Plc', testMessage);
+    }
+    
+    /**
+     * Test filtro camera
+     */
+    testFilter() {
+        console.log('🧪 Testing camera filter...');
+        this.logToUserConsole('info', 'Filter Test Started', `Testing filter for Camera ${this.currentRoomNumber}`);
+        
+        // Simula messaggio per camera corrente (dovrebbe apparire)
+        this.simulateMessage('ENERGIA', this.currentRoomNumber);
+        
+        // Simula messaggio per camera diversa (NON dovrebbe apparire)
+        const otherRoom = this.currentRoomNumber === 1 ? 2 : 1;
+        console.log(`🧪 Simulando messaggio per Camera ${otherRoom} (dovrebbe essere filtrato)`);
+        
+        const filteredMessage = {
+            "Timestamp": new Date().toISOString(),
+            "nCamera": otherRoom,
+            "sNome": "Energia",
+            "nGen": 999
+        };
+        
+        this.processMessage('Camere/Plc', filteredMessage);
+        
+        console.log(`✅ Test completato. Solo il messaggio per Camera ${this.currentRoomNumber} dovrebbe essere apparso nella console utente.`);
+    }
+    
+    /**
+     * Stato del filtro
+     */
+    getFilterStatus() {
+        return {
+            active: true,
+            currentRoom: this.currentRoomNumber,
+            totalHistoryMessages: this.messageHistory.length,
+            filteredHistoryMessages: this.getMessageHistory().length
+        };
     }
 }
 
