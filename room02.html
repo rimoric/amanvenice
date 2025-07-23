@@ -10,7 +10,7 @@
     
     <!-- CSS from room-02.html (complete styles) -->
     <style>
-        /* ===== AMAN VENICE BASE STYLES ===== */
+        /* ===== VARIABILI CSS ===== */
         :root {
             --aman-green: #1a4a3a;
             --aman-gold: #d4af37;
@@ -27,6 +27,7 @@
             --red: #ff3333;
         }
 
+        /* ===== BASE STYLES ===== */
         * {
             margin: 0;
             padding: 0;
@@ -306,16 +307,16 @@
         }
 
         .control-container {
-            background: rgba(255, 255, 255, 0.95);
+            background: transparent;
             border-radius: 15px;
-            padding: 20px;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            padding: 0;
+            box-shadow: none;
             transition: all 0.3s ease;
         }
 
         .control-container:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+            transform: none;
+            box-shadow: none;
         }
 
         /* ===== DALI CONTROLS ===== */
@@ -405,42 +406,39 @@
             gap: 10px;
         }
 
+        /* ===== PULSANTI DALI UNIFICATI ===== */
         .power-btn, .command-button, .monostable-button {
-            color: #5D4037;
+            color: #FFFFFF;
             cursor: pointer;
             min-width: 70px;
             transition: all 0.3s ease;
             font-size: 1em;
-            font-weight: 500;
+            font-weight: 600;
             border: none;
         }
 
         .power-btn:hover, .command-button:hover, .monostable-button:hover {
-            background: rgba(139, 69, 19, 0.25);
-            border-color: rgba(139, 69, 19, 0.4);
             transform: translateY(-2px);
-            color: #8B4513;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
         }
 
-        .power-btn.active {
-            background: rgba(139, 69, 19, 0.3);
-            border-color: rgba(139, 69, 19, 0.5);
-            color: #8B4513;
-            font-weight: 600;
+        .power-btn.active, .power-btn.on-active {
+            background: #2E7D32;
+            border-color: #1B5E20;
+            color: #FFFFFF;
+            box-shadow: 0 4px 15px rgba(46, 125, 50, 0.4);
         }
 
-        .power-btn.on-active {
-            background: rgba(255, 193, 7, 0.4);
-            border-color: rgba(255, 193, 7, 0.5);
-            color: #8B4513;
+        .power-btn.active:hover {
+            background: #388E3C;
+            border-color: #2E7D32;
         }
 
         .command-button.active {
-            background: rgba(40, 167, 69, 0.35);
-            border-color: rgba(40, 167, 69, 0.5);
-            color: #28a745;
-            font-weight: 600;
-            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.25);
+            background: #2E7D32;
+            border-color: #1B5E20;
+            color: #FFFFFF;
+            box-shadow: 0 4px 15px rgba(46, 125, 50, 0.4);
         }
 
         .command-button.inactive {
@@ -459,11 +457,10 @@
         }
 
         .monostable-button.executed {
-            background: rgba(40, 167, 69, 0.35);
-            border-color: rgba(40, 167, 69, 0.5);
-            color: #28a745;
-            font-weight: 600;
-            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.25);
+            background: #2E7D32;
+            border-color: #1B5E20;
+            color: #FFFFFF;
+            box-shadow: 0 4px 15px rgba(46, 125, 50, 0.4);
         }
 
         .level-control {
@@ -496,9 +493,10 @@
             border: 1px solid rgba(139, 69, 19, 0.1);
         }
 
+        /* ===== SLIDER FILL UNIFICATO ===== */
         .level-fill {
             height: 100%;
-            background: linear-gradient(90deg, rgba(139, 69, 19, 0.8), rgba(255, 193, 7, 0.8));
+            background: linear-gradient(90deg, #2E7D32, #4CAF50);
             border-radius: 4px;
             transition: width 0.3s ease;
             position: relative;
@@ -515,6 +513,7 @@
             cursor: pointer;
             transition: all 0.3s ease;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            user-select: none;
         }
 
         .level-thumb:hover {
@@ -524,8 +523,15 @@
         }
 
         .level-thumb.active {
-            background: rgba(255, 193, 7, 0.9);
-            border-color: rgba(255, 193, 7, 0.7);
+            background: #4CAF50;
+            border-color: #2E7D32;
+        }
+
+        .level-thumb.dragging {
+            transform: scale(1.2);
+            box-shadow: 0 6px 20px rgba(139, 69, 19, 0.4);
+            border-color: rgba(139, 69, 19, 0.7);
+            transition: none;
         }
 
         .slider-scale {
@@ -534,6 +540,16 @@
             margin-top: 8px;
             font-size: 0.7em;
             color: rgba(93, 64, 55, 0.7);
+            position: relative;
+        }
+
+        .slider-scale .min-indicator {
+            position: absolute;
+            left: 10%;
+            top: -2px;
+            font-size: 0.6em;
+            color: #2E7D32;
+            font-weight: bold;
         }
 
         .status-indicator {
@@ -575,9 +591,10 @@
 
         .status-dot.executed {
             background: rgba(40, 167, 69, 0.8);
-            animation: pulse-success 2s infinite;
+            animation: pulse 2s infinite;
         }
 
+        /* ===== ANIMAZIONI PULSE CONSOLIDATE ===== */
         @keyframes pulse {
             0%, 100% { opacity: 1; transform: scale(1); }
             50% { opacity: 0.6; transform: scale(1.2); }
@@ -593,9 +610,9 @@
             50% { opacity: 0.4; transform: scale(1.3); }
         }
 
-        @keyframes pulse-success {
+        @keyframes pulse-climate {
             0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.7; transform: scale(1.2); }
+            50% { opacity: 0.8; transform: scale(1.05); }
         }
 
         .command-feedback {
@@ -627,145 +644,13 @@
             background: rgba(0, 102, 255, 0.3);
             border-color: rgba(0, 102, 255, 0.4);
             color: #66ccff;
-            animation: pulse-feedback 1s infinite;
+            animation: pulse 1s infinite;
         }
 
         .command-feedback.executed {
             background: rgba(40, 167, 69, 0.25);
             border-color: rgba(40, 167, 69, 0.35);
             color: #28a745;
-        }
-
-        @keyframes pulse-feedback {
-            0%, 100% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.02); opacity: 0.8; }
-        }
-
-        /* Thermostat specific styles */
-        .temperature-display-container {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            width: 100%;
-        }
-
-        .measured-temp-container {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 8px 15px;
-            background: rgba(33, 150, 243, 0.3);
-            border: 1px solid rgba(33, 150, 243, 0.4);
-            border-radius: 12px;
-            transition: all 0.4s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .measured-temp-container::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            opacity: 0;
-            transition: all 0.4s ease;
-            border-radius: 12px;
-        }
-
-        .measured-temp-container.heating {
-            background: linear-gradient(135deg, rgba(244, 67, 54, 0.3) 0%, rgba(255, 152, 0, 0.2) 100%);
-            border-color: rgba(244, 67, 54, 0.4);
-            box-shadow: 0 4px 15px rgba(244, 67, 54, 0.15);
-        }
-
-        .measured-temp-container.heating::before {
-            background: radial-gradient(circle at 30% 30%, rgba(255, 87, 34, 0.2) 0%, transparent 60%);
-            opacity: 1;
-        }
-
-        .measured-temp-container.cooling {
-            background: linear-gradient(135deg, rgba(33, 150, 243, 0.3) 0%, rgba(3, 169, 244, 0.2) 100%);
-            border-color: rgba(33, 150, 243, 0.4);
-            box-shadow: 0 4px 15px rgba(33, 150, 243, 0.15);
-        }
-
-        .measured-temp-container.cooling::before {
-            background: radial-gradient(circle at 70% 70%, rgba(129, 212, 250, 0.3) 0%, transparent 60%);
-            opacity: 1;
-        }
-
-        .measured-temp-container.neutral {
-            background: rgba(76, 175, 80, 0.25);
-            border-color: rgba(76, 175, 80, 0.35);
-            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.1);
-        }
-
-        .measured-temp-container.off {
-            background: rgba(108, 117, 125, 0.2);
-            border-color: rgba(108, 117, 125, 0.3);
-        }
-
-        .measured-temp-container.off::before {
-            opacity: 0;
-        }
-
-        .measured-temp-label {
-            font-size: 0.75em;
-            color: #1976D2;
-            font-weight: 500;
-            letter-spacing: 0.5px;
-            opacity: 0.9;
-            position: relative;
-            z-index: 1;
-            transition: color 0.3s ease;
-        }
-
-        .measured-temp-container.heating .measured-temp-label {
-            color: #D32F2F;
-        }
-
-        .measured-temp-container.cooling .measured-temp-label {
-            color: #1976D2;
-        }
-
-        .measured-temp-container.neutral .measured-temp-label {
-            color: #388E3C;
-        }
-
-        .measured-temp-container.off .measured-temp-label {
-            color: #6C757D;
-        }
-
-        .measured-temp-value {
-            font-size: 0.9em;
-            font-weight: 600;
-            color: #1565C0;
-            transition: all 0.3s ease;
-            position: relative;
-            z-index: 1;
-        }
-
-        .measured-temp-container.heating .measured-temp-value {
-            color: #C62828;
-        }
-
-        .measured-temp-container.cooling .measured-temp-value {
-            color: #1565C0;
-        }
-
-        .measured-temp-container.neutral .measured-temp-value {
-            color: #2E7D32;
-        }
-
-        .measured-temp-container.off .measured-temp-value {
-            color: #6C757D;
-        }
-
-        .measured-unit {
-            font-size: 0.85em;
-            opacity: 0.8;
         }
 
         .level-btn {
@@ -797,6 +682,19 @@
             transform: translateY(0) scale(0.95);
         }
 
+        /* Rimozione status indicator per DALI */
+        .dali-controller .status-indicator {
+            display: none;
+        }
+
+        /* Previeni la selezione del testo durante il drag */
+        .no-select {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
         /* ===== COMMAND SWITCH & MONOSTABLE ===== */
         .command-switch, .monostable-switch {
             background: linear-gradient(135deg, #EDD4B4 0%, #FAFAF0 100%);
@@ -813,6 +711,324 @@
         .command-switch:hover, .monostable-switch:hover {
             transform: translateY(-5px) scale(1.02);
             box-shadow: 0 30px 80px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+        }
+
+        /* ===== THERMOSTAT CONTROLS ===== */
+        .temperature-display-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: 100%;
+        }
+
+        .level-value.setpoint {
+            font-size: 1.2em;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        .measured-temp-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 18px;
+            border-radius: 15px;
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.3);
+            border: 1px solid rgba(139, 69, 19, 0.2);
+        }
+
+        .measured-temp-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            opacity: 0;
+            transition: all 0.4s ease;
+            border-radius: 15px;
+        }
+
+        .measured-temp-container.heating {
+            background: linear-gradient(135deg, rgba(244, 67, 54, 0.4) 0%, rgba(255, 152, 0, 0.3) 100%);
+            border-color: rgba(244, 67, 54, 0.6);
+            box-shadow: 0 4px 15px rgba(244, 67, 54, 0.25);
+        }
+
+        .measured-temp-container.heating::before {
+            background: radial-gradient(circle at 30% 30%, rgba(255, 87, 34, 0.3) 0%, transparent 60%);
+            opacity: 1;
+        }
+
+        .measured-temp-container.cooling {
+            background: linear-gradient(135deg, rgba(33, 150, 243, 0.4) 0%, rgba(3, 169, 244, 0.3) 100%);
+            border-color: rgba(33, 150, 243, 0.6);
+            box-shadow: 0 4px 15px rgba(33, 150, 243, 0.25);
+        }
+
+        .measured-temp-container.cooling::before {
+            background: radial-gradient(circle at 70% 70%, rgba(129, 212, 250, 0.4) 0%, transparent 60%);
+            opacity: 1;
+        }
+
+        .measured-temp-container.neutral {
+            background: linear-gradient(135deg, rgba(76, 175, 80, 0.4) 0%, rgba(129, 199, 132, 0.3) 100%);
+            border-color: rgba(76, 175, 80, 0.6);
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.25);
+        }
+
+        .measured-temp-container.neutral::before {
+            background: radial-gradient(circle at 50% 50%, rgba(165, 214, 167, 0.3) 0%, transparent 60%);
+            opacity: 1;
+        }
+
+        .measured-temp-container.off {
+            background: rgba(108, 117, 125, 0.3);
+            border-color: rgba(108, 117, 125, 0.4);
+            box-shadow: 0 4px 15px rgba(108, 117, 125, 0.1);
+        }
+
+        .measured-temp-label {
+            font-size: 0.8em;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+            transition: color 0.3s ease;
+            color: #5D4037;
+        }
+
+        .measured-temp-container.heating .measured-temp-label {
+            color: #D32F2F;
+        }
+
+        .measured-temp-container.cooling .measured-temp-label {
+            color: #1976D2;
+        }
+
+        .measured-temp-container.neutral .measured-temp-label {
+            color: #388E3C;
+        }
+
+        .measured-temp-container.off .measured-temp-label {
+            color: #6C757D;
+        }
+
+        .measured-temp-value {
+            font-size: 1.1em;
+            font-weight: 700;
+            transition: all 0.3s ease;
+            position: relative;
+            z-index: 1;
+            color: #5D4037;
+        }
+
+        .measured-temp-container.heating .measured-temp-value {
+            color: #C62828;
+        }
+
+        .measured-temp-container.cooling .measured-temp-value {
+            color: #1565C0;
+        }
+
+        .measured-temp-container.neutral .measured-temp-value {
+            color: #2E7D32;
+        }
+
+        .measured-temp-container.off .measured-temp-value {
+            color: #6C757D;
+        }
+
+        .measured-unit {
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+
+        .thermostat-controller {
+            background: linear-gradient(135deg, #EDD4B4 0%, #FAFAF0 100%);
+            border: 1px solid rgba(139, 69, 19, 0.3);
+            border-radius: 25px;
+            padding: 25px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s ease;
+            width: 100%;
+        }
+
+        .thermostat-controller::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            animation: gentle-shimmer 8s infinite linear;
+            pointer-events: none;
+        }
+
+        .thermostat-controller:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+        }
+
+        .temp-btn {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.4);
+            border: 1px solid rgba(139, 69, 19, 0.2);
+            color: #5D4037;
+            font-size: 1.5em;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            user-select: none;
+        }
+
+        .temp-btn:hover {
+            background: #2E7D32;
+            border-color: #1B5E20;
+            color: #FFFFFF;
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 6px 20px rgba(46, 125, 50, 0.3);
+        }
+
+        .temp-btn:active {
+            transform: translateY(0) scale(0.95);
+        }
+
+        .temp-btn.decrease:hover {
+            background: #1976D2;
+            border-color: #1565C0;
+            box-shadow: 0 6px 20px rgba(25, 118, 210, 0.3);
+        }
+
+        .temp-btn.increase:hover {
+            background: #D32F2F;
+            border-color: #C62828;
+            box-shadow: 0 6px 20px rgba(211, 47, 47, 0.3);
+        }
+
+        .temp-slider {
+            width: 100%;
+            height: 10px;
+            background: rgba(139, 69, 19, 0.2);
+            border-radius: 5px;
+            position: relative;
+            cursor: pointer;
+            border: 1px solid rgba(139, 69, 19, 0.1);
+            flex: 1;
+            margin: 0 15px;
+        }
+
+        .temp-slider .level-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #1976D2, #2E7D32, #D32F2F);
+            border-radius: 5px;
+            transition: width 0.3s ease;
+            position: relative;
+        }
+
+        /* Override specifico per termostato */
+        .temp-slider .level-thumb {
+            top: -10px;
+            width: 30px;
+            height: 30px;
+            border: 3px solid rgba(139, 69, 19, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7em;
+            font-weight: 700;
+        }
+
+        .temp-slider .level-thumb.dragging {
+            transform: scale(1.3);
+            box-shadow: 0 8px 25px rgba(139, 69, 19, 0.5);
+            border-color: rgba(139, 69, 19, 0.8);
+            transition: none;
+        }
+
+        .level-slider-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 15px 0;
+        }
+
+        .climate-status {
+            margin: 20px 0 10px 0;
+            position: relative;
+            z-index: 2;
+        }
+
+        .climate-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 12px 20px;
+            border-radius: 15px;
+            font-size: 0.9em;
+            font-weight: 600;
+            transition: all 0.4s ease;
+            background: rgba(255, 255, 255, 0.3);
+            border: 1px solid rgba(139, 69, 19, 0.2);
+        }
+
+        .climate-indicator.heating {
+            background: rgba(244, 67, 54, 0.3);
+            border-color: rgba(244, 67, 54, 0.5);
+            color: #D32F2F;
+            box-shadow: 0 4px 15px rgba(244, 67, 54, 0.2);
+        }
+
+        .climate-indicator.cooling {
+            background: rgba(33, 150, 243, 0.3);
+            border-color: rgba(33, 150, 243, 0.5);
+            color: #1976D2;
+            box-shadow: 0 4px 15px rgba(33, 150, 243, 0.2);
+        }
+
+        .climate-indicator.neutral {
+            background: rgba(76, 175, 80, 0.3);
+            border-color: rgba(76, 175, 80, 0.5);
+            color: #388E3C;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.2);
+        }
+
+        .climate-indicator.off {
+            background: rgba(108, 117, 125, 0.2);
+            border-color: rgba(108, 117, 125, 0.3);
+            color: #6C757D;
+        }
+
+        .climate-icon {
+            font-size: 1.2em;
+            animation: pulse-climate 2s infinite;
+        }
+
+        .climate-indicator.heating .climate-icon {
+            animation: pulse-climate 1.5s infinite;
+        }
+
+        .climate-indicator.cooling .climate-icon {
+            animation: pulse-climate 1.5s infinite;
+        }
+
+        .climate-indicator.neutral .climate-icon {
+            animation: pulse-climate 3s infinite;
         }
 
         /* ===== STATUS PANEL ===== */
@@ -1083,854 +1299,6 @@
                 gap: 15px;
             }
         }
-
-/* ===== MIGLIORAMENTI CSS DALI - DA AGGIUNGERE AL FILE HTML ===== */
-
-/* Pulsanti DALI con colori verdi decisi */
-.power-btn, .command-button, .monostable-button {
-    color: #FFFFFF;
-    cursor: pointer;
-    min-width: 70px;
-    transition: all 0.3s ease;
-    font-size: 1em;
-    font-weight: 600;
-    border: none;
-}
-
-.power-btn:hover, .command-button:hover, .monostable-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
-}
-
-.power-btn.active {
-    background: #2E7D32;
-    border-color: #1B5E20;
-    color: #FFFFFF;
-    box-shadow: 0 4px 15px rgba(46, 125, 50, 0.4);
-}
-
-.power-btn.active:hover {
-    background: #388E3C;
-    border-color: #2E7D32;
-}
-
-/* Rimuovi i vecchi stili on-active per usare solo active */
-.power-btn.on-active {
-    background: #2E7D32;
-    border-color: #1B5E20;
-    color: #FFFFFF;
-    box-shadow: 0 4px 15px rgba(46, 125, 50, 0.4);
-}
-
-.command-button.active {
-    background: #2E7D32;
-    border-color: #1B5E20;
-    color: #FFFFFF;
-    box-shadow: 0 4px 15px rgba(46, 125, 50, 0.4);
-}
-
-.command-button.inactive {
-    background: rgba(108, 117, 125, 0.3);
-    border-color: rgba(108, 117, 125, 0.4);
-    color: #6C757D;
-}
-
-.monostable-button.pressed {
-    background: rgba(0, 102, 255, 0.35);
-    border-color: rgba(0, 102, 255, 0.5);
-    color: #66ccff;
-    font-weight: 600;
-    box-shadow: 0 4px 15px rgba(0, 102, 255, 0.3);
-    transform: scale(0.95);
-}
-
-.monostable-button.executed {
-    background: #2E7D32;
-    border-color: #1B5E20;
-    color: #FFFFFF;
-    box-shadow: 0 4px 15px rgba(46, 125, 50, 0.4);
-}
-
-/* Barra slider con colore verde deciso */
-.level-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #2E7D32, #4CAF50);
-    border-radius: 4px;
-    transition: width 0.3s ease;
-    position: relative;
-}
-
-/* Thumb attivo con colore verde */
-.level-thumb.active {
-    background: #4CAF50;
-    border-color: #2E7D32;
-}
-
-.level-thumb.dragging {
-    transform: scale(1.2);
-    box-shadow: 0 6px 20px rgba(139, 69, 19, 0.4);
-    border-color: rgba(139, 69, 19, 0.7);
-    transition: none;
-}
-
-/* Indicatore min per range 10-100% */
-.slider-scale {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 8px;
-    font-size: 0.7em;
-    color: rgba(93, 64, 55, 0.7);
-    position: relative;
-}
-
-.slider-scale .min-indicator {
-    position: absolute;
-    left: 10%;
-    top: -2px;
-    font-size: 0.6em;
-    color: #2E7D32;
-    font-weight: bold;
-}
-
-/* Rimozione status indicator per DALI */
-.dali-controller .status-indicator {
-    display: none;
-}
-
-/* Altri controlli mantengono il loro status indicator */
-.command-switch .status-indicator,
-.monostable-switch .status-indicator {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    margin: 15px 0;
-    font-size: 0.85em;
-    color: #5D4037;
-    position: relative;
-    z-index: 2;
-}
-
-/* Previeni la selezione del testo durante il drag */
-.no-select {
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
-}
-
-/* Miglioramenti per user experience */
-.level-thumb {
-    position: absolute;
-    top: -8px;
-    width: 24px;
-    height: 24px;
-    background: rgba(255, 255, 255, 0.9);
-    border-radius: 50%;
-    border: 2px solid rgba(139, 69, 19, 0.5);
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-    user-select: none;
-}
-
-.level-thumb:hover {
-    transform: scale(1.2);
-    box-shadow: 0 6px 20px rgba(139, 69, 19, 0.3);
-    border-color: rgba(139, 69, 19, 0.7);
-}
-
-/* ===== MIGLIORAMENTI CSS DALI - DA AGGIUNGERE AL FILE HTML ===== */
-
-/* RIMOZIONE/TRASPARENZA PANNELLO BIANCO PER CONTROLLI */
-.control-container {
-    background: transparent; /* Rimuove il bianco */
-    border-radius: 15px;
-    padding: 0; /* Rimuove padding inutile */
-    box-shadow: none; /* Rimuove ombra */
-    transition: all 0.3s ease;
-}
-
-.control-container:hover {
-    transform: none; /* Rimuove effetto hover del pannello */
-    box-shadow: none;
-}
-
-/* Pulsanti DALI con colori verdi decisi */
-.power-btn, .command-button, .monostable-button {
-    color: #FFFFFF;
-    cursor: pointer;
-    min-width: 70px;
-    transition: all 0.3s ease;
-    font-size: 1em;
-    font-weight: 600;
-    border: none;
-}
-
-.power-btn:hover, .command-button:hover, .monostable-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
-}
-
-.power-btn.active {
-    background: #2E7D32;
-    border-color: #1B5E20;
-    color: #FFFFFF;
-    box-shadow: 0 4px 15px rgba(46, 125, 50, 0.4);
-}
-
-.power-btn.active:hover {
-    background: #388E3C;
-    border-color: #2E7D32;
-}
-
-/* Rimuovi i vecchi stili on-active per usare solo active */
-.power-btn.on-active {
-    background: #2E7D32;
-    border-color: #1B5E20;
-    color: #FFFFFF;
-    box-shadow: 0 4px 15px rgba(46, 125, 50, 0.4);
-}
-
-.command-button.active {
-    background: #2E7D32;
-    border-color: #1B5E20;
-    color: #FFFFFF;
-    box-shadow: 0 4px 15px rgba(46, 125, 50, 0.4);
-}
-
-.command-button.inactive {
-    background: rgba(108, 117, 125, 0.3);
-    border-color: rgba(108, 117, 125, 0.4);
-    color: #6C757D;
-}
-
-.monostable-button.pressed {
-    background: rgba(0, 102, 255, 0.35);
-    border-color: rgba(0, 102, 255, 0.5);
-    color: #66ccff;
-    font-weight: 600;
-    box-shadow: 0 4px 15px rgba(0, 102, 255, 0.3);
-    transform: scale(0.95);
-}
-
-.monostable-button.executed {
-    background: #2E7D32;
-    border-color: #1B5E20;
-    color: #FFFFFF;
-    box-shadow: 0 4px 15px rgba(46, 125, 50, 0.4);
-}
-
-/* Barra slider con colore verde deciso */
-.level-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #2E7D32, #4CAF50);
-    border-radius: 4px;
-    transition: width 0.3s ease;
-    position: relative;
-}
-
-/* Thumb attivo con colore verde */
-.level-thumb.active {
-    background: #4CAF50;
-    border-color: #2E7D32;
-}
-
-.level-thumb.dragging {
-    transform: scale(1.2);
-    box-shadow: 0 6px 20px rgba(139, 69, 19, 0.4);
-    border-color: rgba(139, 69, 19, 0.7);
-    transition: none;
-}
-
-/* Indicatore min per range 10-100% */
-.slider-scale {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 8px;
-    font-size: 0.7em;
-    color: rgba(93, 64, 55, 0.7);
-    position: relative;
-}
-
-.slider-scale .min-indicator {
-    position: absolute;
-    left: 10%;
-    top: -2px;
-    font-size: 0.6em;
-    color: #2E7D32;
-    font-weight: bold;
-}
-
-/* Rimozione status indicator per DALI */
-.dali-controller .status-indicator {
-    display: none;
-}
-
-/* Altri controlli mantengono il loro status indicator */
-.command-switch .status-indicator,
-.monostable-switch .status-indicator {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    margin: 15px 0;
-    font-size: 0.85em;
-    color: #5D4037;
-    position: relative;
-    z-index: 2;
-}
-
-/* Previeni la selezione del testo durante il drag */
-.no-select {
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
-}
-
-/* Miglioramenti per user experience */
-.level-thumb {
-    position: absolute;
-    top: -8px;
-    width: 24px;
-    height: 24px;
-    background: rgba(255, 255, 255, 0.9);
-    border-radius: 50%;
-    border: 2px solid rgba(139, 69, 19, 0.5);
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-    user-select: none;
-}
-
-.level-thumb:hover {
-    transform: scale(1.2);
-    box-shadow: 0 6px 20px rgba(139, 69, 19, 0.3);
-    border-color: rgba(139, 69, 19, 0.7);
-}
-.power-btn, .command-button, .monostable-button {
-    color: #FFFFFF;
-    cursor: pointer;
-    min-width: 70px;
-    transition: all 0.3s ease;
-    font-size: 1em;
-    font-weight: 600;
-    border: none;
-}
-
-.power-btn:hover, .command-button:hover, .monostable-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
-}
-
-.power-btn.active {
-    background: #2E7D32;
-    border-color: #1B5E20;
-    color: #FFFFFF;
-    box-shadow: 0 4px 15px rgba(46, 125, 50, 0.4);
-}
-
-.power-btn.active:hover {
-    background: #388E3C;
-    border-color: #2E7D32;
-}
-
-/* Rimuovi i vecchi stili on-active per usare solo active */
-.power-btn.on-active {
-    background: #2E7D32;
-    border-color: #1B5E20;
-    color: #FFFFFF;
-    box-shadow: 0 4px 15px rgba(46, 125, 50, 0.4);
-}
-
-.command-button.active {
-    background: #2E7D32;
-    border-color: #1B5E20;
-    color: #FFFFFF;
-    box-shadow: 0 4px 15px rgba(46, 125, 50, 0.4);
-}
-
-.command-button.inactive {
-    background: rgba(108, 117, 125, 0.3);
-    border-color: rgba(108, 117, 125, 0.4);
-    color: #6C757D;
-}
-
-.monostable-button.pressed {
-    background: rgba(0, 102, 255, 0.35);
-    border-color: rgba(0, 102, 255, 0.5);
-    color: #66ccff;
-    font-weight: 600;
-    box-shadow: 0 4px 15px rgba(0, 102, 255, 0.3);
-    transform: scale(0.95);
-}
-
-.monostable-button.executed {
-    background: #2E7D32;
-    border-color: #1B5E20;
-    color: #FFFFFF;
-    box-shadow: 0 4px 15px rgba(46, 125, 50, 0.4);
-}
-
-/* Barra slider con colore verde deciso */
-.level-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #2E7D32, #4CAF50);
-    border-radius: 4px;
-    transition: width 0.3s ease;
-    position: relative;
-}
-
-/* Thumb attivo con colore verde */
-.level-thumb.active {
-    background: #4CAF50;
-    border-color: #2E7D32;
-}
-
-.level-thumb.dragging {
-    transform: scale(1.2);
-    box-shadow: 0 6px 20px rgba(139, 69, 19, 0.4);
-    border-color: rgba(139, 69, 19, 0.7);
-    transition: none;
-}
-
-/* Indicatore min per range 10-100% */
-.slider-scale {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 8px;
-    font-size: 0.7em;
-    color: rgba(93, 64, 55, 0.7);
-    position: relative;
-}
-
-.slider-scale .min-indicator {
-    position: absolute;
-    left: 10%;
-    top: -2px;
-    font-size: 0.6em;
-    color: #2E7D32;
-    font-weight: bold;
-}
-
-/* Rimozione status indicator per DALI */
-.dali-controller .status-indicator {
-    display: none;
-}
-
-/* Altri controlli mantengono il loro status indicator */
-.command-switch .status-indicator,
-.monostable-switch .status-indicator {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    margin: 15px 0;
-    font-size: 0.85em;
-    color: #5D4037;
-    position: relative;
-    z-index: 2;
-}
-
-/* Previeni la selezione del testo durante il drag */
-.no-select {
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
-}
-
-/* Miglioramenti per user experience */
-.level-thumb {
-    position: absolute;
-    top: -8px;
-    width: 24px;
-    height: 24px;
-    background: rgba(255, 255, 255, 0.9);
-    border-radius: 50%;
-    border: 2px solid rgba(139, 69, 19, 0.5);
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-    user-select: none;
-}
-
-.level-thumb:hover {
-    transform: scale(1.2);
-    box-shadow: 0 6px 20px rgba(139, 69, 19, 0.3);
-    border-color: rgba(139, 69, 19, 0.7);
-}
-
-
-/* ===== CSS TERMOSTATO MIGLIORATO - DA AGGIUNGERE AL FILE HTML ===== */
-
-/* CONTROLLO TERMOSTATO BASE */
-.thermostat-controller {
-    background: linear-gradient(135deg, #EDD4B4 0%, #FAFAF0 100%);
-    border: 1px solid rgba(139, 69, 19, 0.3);
-    border-radius: 25px;
-    padding: 25px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.5);
-    position: relative;
-    overflow: hidden;
-    transition: all 0.4s ease;
-    width: 100%;
-}
-
-.thermostat-controller::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
-    animation: gentle-shimmer 8s infinite linear;
-    pointer-events: none;
-}
-
-.thermostat-controller:hover {
-    transform: translateY(-5px) scale(1.02);
-    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.6);
-}
-
-/* DISPLAY TEMPERATURE MIGLIORATO */
-.temperature-display-container {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    width: 100%;
-}
-
-.level-value.setpoint {
-    font-size: 1.2em;
-    font-weight: 700;
-    text-align: center;
-}
-
-/* MEASURED TEMPERATURE CONTAINER - STATI MIGLIORATI */
-.measured-temp-container {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 18px;
-    border-radius: 15px;
-    transition: all 0.4s ease;
-    position: relative;
-    overflow: hidden;
-    background: rgba(255, 255, 255, 0.3);
-    border: 1px solid rgba(139, 69, 19, 0.2);
-}
-
-.measured-temp-container::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    opacity: 0;
-    transition: all 0.4s ease;
-    border-radius: 15px;
-}
-
-/* STATI CLIMATIZZAZIONE CON COLORI DECISI */
-.measured-temp-container.heating {
-    background: linear-gradient(135deg, rgba(244, 67, 54, 0.4) 0%, rgba(255, 152, 0, 0.3) 100%);
-    border-color: rgba(244, 67, 54, 0.6);
-    box-shadow: 0 4px 15px rgba(244, 67, 54, 0.25);
-}
-
-.measured-temp-container.heating::before {
-    background: radial-gradient(circle at 30% 30%, rgba(255, 87, 34, 0.3) 0%, transparent 60%);
-    opacity: 1;
-}
-
-.measured-temp-container.cooling {
-    background: linear-gradient(135deg, rgba(33, 150, 243, 0.4) 0%, rgba(3, 169, 244, 0.3) 100%);
-    border-color: rgba(33, 150, 243, 0.6);
-    box-shadow: 0 4px 15px rgba(33, 150, 243, 0.25);
-}
-
-.measured-temp-container.cooling::before {
-    background: radial-gradient(circle at 70% 70%, rgba(129, 212, 250, 0.4) 0%, transparent 60%);
-    opacity: 1;
-}
-
-.measured-temp-container.neutral {
-    background: linear-gradient(135deg, rgba(76, 175, 80, 0.4) 0%, rgba(129, 199, 132, 0.3) 100%);
-    border-color: rgba(76, 175, 80, 0.6);
-    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.25);
-}
-
-.measured-temp-container.neutral::before {
-    background: radial-gradient(circle at 50% 50%, rgba(165, 214, 167, 0.3) 0%, transparent 60%);
-    opacity: 1;
-}
-
-.measured-temp-container.off {
-    background: rgba(108, 117, 125, 0.3);
-    border-color: rgba(108, 117, 125, 0.4);
-    box-shadow: 0 4px 15px rgba(108, 117, 125, 0.1);
-}
-
-/* LABELS E VALUES TEMPERATURE */
-.measured-temp-label {
-    font-size: 0.8em;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-    opacity: 0.9;
-    position: relative;
-    z-index: 1;
-    transition: color 0.3s ease;
-    color: #5D4037;
-}
-
-.measured-temp-container.heating .measured-temp-label {
-    color: #D32F2F;
-}
-
-.measured-temp-container.cooling .measured-temp-label {
-    color: #1976D2;
-}
-
-.measured-temp-container.neutral .measured-temp-label {
-    color: #388E3C;
-}
-
-.measured-temp-container.off .measured-temp-label {
-    color: #6C757D;
-}
-
-.measured-temp-value {
-    font-size: 1.1em;
-    font-weight: 700;
-    transition: all 0.3s ease;
-    position: relative;
-    z-index: 1;
-    color: #5D4037;
-}
-
-.measured-temp-container.heating .measured-temp-value {
-    color: #C62828;
-}
-
-.measured-temp-container.cooling .measured-temp-value {
-    color: #1565C0;
-}
-
-.measured-temp-container.neutral .measured-temp-value {
-    color: #2E7D32;
-}
-
-.measured-temp-container.off .measured-temp-value {
-    color: #6C757D;
-}
-
-.measured-unit {
-    font-size: 0.9em;
-    opacity: 0.8;
-}
-
-/* PULSANTI TEMPERATURA +/- */
-.temp-btn {
-    width: 45px;
-    height: 45px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.4);
-    border: 1px solid rgba(139, 69, 19, 0.2);
-    color: #5D4037;
-    font-size: 1.5em;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    user-select: none;
-}
-
-.temp-btn:hover {
-    background: #2E7D32;
-    border-color: #1B5E20;
-    color: #FFFFFF;
-    transform: translateY(-2px) scale(1.05);
-    box-shadow: 0 6px 20px rgba(46, 125, 50, 0.3);
-}
-
-.temp-btn:active {
-    transform: translateY(0) scale(0.95);
-}
-
-.temp-btn.decrease:hover {
-    background: #1976D2;
-    border-color: #1565C0;
-    box-shadow: 0 6px 20px rgba(25, 118, 210, 0.3);
-}
-
-.temp-btn.increase:hover {
-    background: #D32F2F;
-    border-color: #C62828;
-    box-shadow: 0 6px 20px rgba(211, 47, 47, 0.3);
-}
-
-/* SLIDER TEMPERATURA */
-.temp-slider {
-    width: 100%;
-    height: 10px;
-    background: rgba(139, 69, 19, 0.2);
-    border-radius: 5px;
-    position: relative;
-    cursor: pointer;
-    border: 1px solid rgba(139, 69, 19, 0.1);
-    flex: 1;
-    margin: 0 15px;
-}
-
-.temp-slider .level-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #1976D2, #2E7D32, #D32F2F);
-    border-radius: 5px;
-    transition: width 0.3s ease;
-    position: relative;
-}
-
-.temp-slider .level-thumb {
-    position: absolute;
-    top: -10px;
-    width: 30px;
-    height: 30px;
-    background: rgba(255, 255, 255, 0.95);
-    border-radius: 50%;
-    border: 3px solid rgba(139, 69, 19, 0.5);
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-    user-select: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.7em;
-    font-weight: 700;
-    color: #5D4037;
-}
-
-.temp-slider .level-thumb:hover {
-    transform: scale(1.2);
-    box-shadow: 0 6px 20px rgba(139, 69, 19, 0.4);
-    border-color: rgba(139, 69, 19, 0.7);
-}
-
-.temp-slider .level-thumb.active {
-    background: #4CAF50;
-    border-color: #2E7D32;
-    color: #FFFFFF;
-}
-
-.temp-slider .level-thumb.dragging {
-    transform: scale(1.3);
-    box-shadow: 0 8px 25px rgba(139, 69, 19, 0.5);
-    border-color: rgba(139, 69, 19, 0.8);
-    transition: none;
-}
-
-/* LAYOUT CONTROLLO TEMPERATURA */
-.level-slider-container {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    padding: 15px 0;
-}
-
-/* STATUS CLIMATIZZAZIONE */
-.climate-status {
-    margin: 20px 0 10px 0;
-    position: relative;
-    z-index: 2;
-}
-
-.climate-indicator {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    padding: 12px 20px;
-    border-radius: 15px;
-    font-size: 0.9em;
-    font-weight: 600;
-    transition: all 0.4s ease;
-    background: rgba(255, 255, 255, 0.3);
-    border: 1px solid rgba(139, 69, 19, 0.2);
-}
-
-.climate-indicator.heating {
-    background: rgba(244, 67, 54, 0.3);
-    border-color: rgba(244, 67, 54, 0.5);
-    color: #D32F2F;
-    box-shadow: 0 4px 15px rgba(244, 67, 54, 0.2);
-}
-
-.climate-indicator.cooling {
-    background: rgba(33, 150, 243, 0.3);
-    border-color: rgba(33, 150, 243, 0.5);
-    color: #1976D2;
-    box-shadow: 0 4px 15px rgba(33, 150, 243, 0.2);
-}
-
-.climate-indicator.neutral {
-    background: rgba(76, 175, 80, 0.3);
-    border-color: rgba(76, 175, 80, 0.5);
-    color: #388E3C;
-    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.2);
-}
-
-.climate-indicator.off {
-    background: rgba(108, 117, 125, 0.2);
-    border-color: rgba(108, 117, 125, 0.3);
-    color: #6C757D;
-}
-
-.climate-icon {
-    font-size: 1.2em;
-    animation: pulse-climate 2s infinite;
-}
-
-.climate-indicator.heating .climate-icon {
-    animation: pulse-heat 1.5s infinite;
-}
-
-.climate-indicator.cooling .climate-icon {
-    animation: pulse-cool 1.5s infinite;
-}
-
-.climate-indicator.neutral .climate-icon {
-    animation: pulse-neutral 3s infinite;
-}
-
-@keyframes pulse-heat {
-    0%, 100% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.1); opacity: 0.8; }
-}
-
-@keyframes pulse-cool {
-    0%, 100% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.1); opacity: 0.8; }
-}
-
-@keyframes pulse-neutral {
-    0%, 100% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.05); opacity: 0.9; }
-}
-
-@keyframes pulse-climate {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.7; }
-}
-
-
     </style>
 </head>
 <body>
@@ -2065,7 +1433,7 @@
 
     <button class="console-toggle" onclick="toggleConsole()">📡</button>
 
-    <!-- MQTT Manager (reused from room-02.html) -->
+    <!-- MQTT Manager -->
     <script>
         class MQTTManager {
             constructor() {
@@ -2266,12 +1634,24 @@
                 dashboardCore = new AmanDashboardCore();
                 await dashboardCore.init(roomNumber);
                 
-                // Initialize room manager
-                roomManager = new AmanRoomManager(dashboardCore);
-                
+                // Initialize room manager with error handling
+                try {
+                    roomManager = new AmanRoomManager(dashboardCore);
+                    console.log('✅ RoomManager initialized:', roomManager);
+                } catch (error) {
+                    console.error('❌ Failed to initialize RoomManager:', error);
+                    roomManager = null;
+                }
+
                 // Initialize control factory
-                controlFactory = new AmanControlFactory(dashboardCore);
-                controlFactory.initialize();
+                try {
+                    controlFactory = new AmanControlFactory(dashboardCore);
+                    controlFactory.initialize();
+                    console.log('✅ ControlFactory initialized:', controlFactory);
+                } catch (error) {
+                    console.error('❌ Failed to initialize ControlFactory:', error);
+                    controlFactory = null;
+                }
                 
                 console.log('✅ Modular dashboard system ready');
                 
@@ -2316,30 +1696,41 @@
             try {
                 // Load dashboard core
                 await dashboardCore.loadDashboard();
-                
+        
+                // SAFE: Controlla che roomManager esista
+                if (!roomManager) {
+                    console.warn('⚠️ roomManager is null, reinitializing...');
+                    roomManager = new AmanRoomManager(dashboardCore);
+                }
+        
+                // SAFE: Controlla che generateLayout esista
+                if (!roomManager || typeof roomManager.generateLayout !== 'function') {
+                    throw new Error('RoomManager not properly initialized');
+                }
+        
                 // Generate layout
                 await roomManager.generateLayout();
-                
+        
                 // Show main app
                 document.getElementById('loadingScreen').style.display = 'none';
                 document.getElementById('mainApp').style.display = 'flex';
                 document.getElementById('mainApp').classList.add('show');
-                
+        
                 // Update status
                 dashboardCore.updateInfoModal();
-                
+        
                 console.log('🎉 Dashboard loaded successfully!');
-                
+        
             } catch (error) {
                 console.error('❌ Failed to load dashboard:', error);
                 alert('Failed to load dashboard: ' + error.message);
-                
+        
                 // Return to login
                 document.getElementById('loadingScreen').style.display = 'none';
                 document.getElementById('loginScreen').style.display = 'flex';
             }
-        }
-        
+        }        
+
         // ===== UI FUNCTIONS =====
         function switchTab(tabId, buttonElement = null) {
             if (roomManager) {
