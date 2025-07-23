@@ -179,7 +179,7 @@ class AmanDashboardCore {
                 logoImage.src = logoBase64;
             };
             
-            logoImage.src = 'assets/logos/AmanVeniceCameraLogo.png';
+            logoImage.src = 'assets/images/AmanVeniceCameraLogo.png';
         }, 100);
     }
     
