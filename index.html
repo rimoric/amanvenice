@@ -109,7 +109,7 @@
                 const roomPadded = num.toString().padStart(2, '0');
                 const card = document.createElement('a');
                 card.className = 'room-card';
-                card.href = `room-${roomPadded}.html`;
+                card.href = `room${roomPadded}.html`;
                 card.innerHTML = `
                     <div class="room-number">Room ${roomPadded}</div>
                     <div class="room-status">Available</div>
