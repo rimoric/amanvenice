@@ -9,6 +9,7 @@
  * - Integrazione con dashboard core
  * - CONTROLLI DALI MIGLIORATI: Range 10-100%, colori verdi, slider fluido
  * - CONTROLLI TERMOSTATO MIGLIORATI: Step 0.5°C, stati visuali, drag fluido
+ * - BUG FIX: Caricamento corretto controlli da tab.controls
  */
 
 class AmanRoomManager {
@@ -17,7 +18,7 @@ class AmanRoomManager {
         this.activeTab = null;
         this.loadedSections = new Set();
         
-        console.log('🏠 AMAN Room Manager inizializzato (v2.0 - DALI + Termostato)');
+        console.log('🏠 AMAN Room Manager inizializzato (v2.1 - FIXED)');
     }
     
     /**
@@ -97,7 +98,7 @@ class AmanRoomManager {
     }
     
     /**
-     * Generazione contenuti tab
+     * Generazione contenuti tab - BUG FIX V4 - FORMATO JSON + CORE
      */
     async generateTabContents(roomConfig) {
         const tabsContainer = document.getElementById('tabsContainer');
@@ -109,10 +110,28 @@ class AmanRoomManager {
         // Pulisci container
         tabsContainer.innerHTML = '';
         
-        // Genera ogni tab
+        console.log(`🔍 DEBUG roomConfig:`, roomConfig);
+        console.log(`🔍 DEBUG roomConfig.controls:`, roomConfig.controls);
+        
+        // Genera ogni tab - FIX: Gestisci entrambi i formati di configurazione
         for (let i = 0; i < roomConfig.tabs.length; i++) {
             const tab = roomConfig.tabs[i];
-            await this.generateTabContent(tab, roomConfig.controls[tab.id] || [], i === 0);
+            
+            // NUOVO: Prova prima formato JSON (tab.controls), poi formato core
+            let controls = [];
+            if (tab.controls && Array.isArray(tab.controls)) {
+                // Formato JSON: i controlli sono dentro ogni tab
+                controls = tab.controls;
+                console.log(`🔍 Tab ${tab.id}: found ${controls.length} controls (JSON format)`, controls);
+            } else if (roomConfig.controls && roomConfig.controls[tab.id]) {
+                // Formato core: i controlli sono in roomConfig.controls[tabId]
+                controls = roomConfig.controls[tab.id];
+                console.log(`🔍 Tab ${tab.id}: found ${controls.length} controls (Core format)`, controls);
+            } else {
+                console.log(`🔍 Tab ${tab.id}: no controls found`);
+            }
+            
+            await this.generateTabContent(tab, controls, i === 0);
         }
     }
     
@@ -214,9 +233,9 @@ class AmanRoomManager {
      * Generazione HTML controllo DALI - VERSIONE MIGLIORATA
      */
     generateDALIControlHTML(controlId, control) {
-        const isOn = control.initialPower;
-        const level = isOn ? control.initialLevel : 0;
-        const setLevel = control.initialLevel; // Mantieni setLevel sempre visibile
+        const isOn = control.initialPower || false;
+        const level = isOn ? (control.initialLevel || 50) : 0;
+        const setLevel = control.initialLevel || 50; // Mantieni setLevel sempre visibile
         
         return `
             <div class="dali-controller" id="${controlId}_controller">
@@ -267,7 +286,7 @@ class AmanRoomManager {
      * Generazione HTML controllo TERMOSTATO - VERSIONE MIGLIORATA
      */
     generateThermostatControlHTML(controlId, control) {
-        const isOn = control.initialPower;
+        const isOn = control.initialPower || false;
         const temp = control.initialTemp || 22;
         const measuredTemp = control.measuredTemp || 20.0;
         const minTemp = control.minTemp || 16;
@@ -275,7 +294,6 @@ class AmanRoomManager {
         
         // Calcola percentuale per slider con step 0.5°C
         const tempRange = maxTemp - minTemp;
-        const tempSteps = tempRange * 2; // 0.5°C steps
         const normalizedTemp = Math.round((temp - minTemp) * 2) / 2; // Arrotonda a 0.5
         const percentage = (normalizedTemp / tempRange) * 100;
         
@@ -388,7 +406,7 @@ class AmanRoomManager {
      * Generazione HTML controllo On/Off
      */
     generateOnOffControlHTML(controlId, control) {
-        const isActive = control.initialState;
+        const isActive = control.initialState || false;
         const activeText = control.activeText || 'ON';
         const inactiveText = control.inactiveText || 'OFF';
         const activeFeedback = control.activeFeedback || 'System active';
@@ -426,7 +444,7 @@ class AmanRoomManager {
                 
                 <div class="main-controls">
                     <button class="monostable-button uniform-element" id="${controlId}_btn" onclick="window.roomControls.executeMonostable('${controlId}')">
-                        ${control.buttonText}
+                        ${control.buttonText || 'EXECUTE'}
                         <span class="countdown-timer" id="${controlId}_countdown" style="display: none;"></span>
                     </button>
                     
