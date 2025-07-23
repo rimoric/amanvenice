@@ -9,8 +9,184 @@
  * - Integrazione con dashboard core
  * - CONTROLLI DALI MIGLIORATI: Range 10-100%, colori verdi, slider fluido
  * - CONTROLLI TERMOSTATO MIGLIORATI: Step 0.5°C, stati visuali, drag fluido
- * - BUG FIX: Caricamento corretto controlli da tab.controls
+ * - TEMPLATE SYSTEM: HTML separato dalla logica per facilitare modifiche
  */
+
+// ===== TEMPLATE CONTROLLI - IMPORTATI DAI FILE HTML ORIGINALI =====
+const CONTROL_TEMPLATES = {
+    dali: `
+        <div class="dali-controller" id="{{controlId}}_controller">
+            <!-- LABEL NOME GRUPPO -->
+            <div class="group-label uniform-element">{{name}}</div>
+            
+            <!-- CONTROLLI PRINCIPALI: LIVELLO + ON/OFF -->
+            <div class="main-controls">
+                <!-- VISUALIZZAZIONE LIVELLO CORRENTE -->
+                <div class="level-display">
+                    <div class="level-value uniform-element {{powerClass}}" id="{{controlId}}_display">
+                        {{level}}<span class="level-unit">%</span>
+                    </div>
+                </div>
+                
+                <!-- COMANDO ON/OFF -->
+                <div class="power-controls">
+                    <button class="power-btn uniform-element {{offClass}}" id="{{controlId}}_off" onclick="window.roomControls.setDALIPower('{{controlId}}', 'off')">OFF</button>
+                    <button class="power-btn uniform-element {{onClass}}" id="{{controlId}}_on" onclick="window.roomControls.setDALIPower('{{controlId}}', 'on')">ON</button>
+                </div>
+            </div>
+            
+            <!-- SLIDER IMPOSTAZIONE LIVELLO -->
+            <div class="level-control">
+                <div class="level-label">Impostazione Livello</div>
+                <div class="level-slider-container">
+                    <div class="level-slider" id="{{controlId}}_slider" onclick="window.roomControls.adjustDALILevel(event, '{{controlId}}')">
+                        <div class="level-fill" id="{{controlId}}_fill" style="width: {{setLevel}}%"></div>
+                        <div class="level-thumb {{thumbClass}}" id="{{controlId}}_thumb" style="left: calc({{setLevel}}% - 12px)"></div>
+                    </div>
+                    <div class="slider-scale">
+                        <span>0%</span>
+                        <span>25%</span>
+                        <span>50%</span>
+                        <span>75%</span>
+                        <span>100%</span>
+                        <div style="position: absolute; left: 10%; top: -2px; font-size: 0.6em; color: #2E7D32; font-weight: bold;">min</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `,
+    
+    thermostat: `
+        <div class="dali-controller" id="{{controlId}}_controller">
+            <!-- LABEL NOME GRUPPO -->
+            <div class="group-label uniform-element">{{name}}</div>
+            
+            <!-- CONTROLLI PRINCIPALI: TEMPERATURA ATTUALE + ON/OFF -->
+            <div class="main-controls">
+                <!-- VISUALIZZAZIONE TEMPERATURA ATTUALE -->
+                <div class="level-display">
+                    <div class="level-value uniform-element" id="{{controlId}}_display">
+                        {{temp}}<span class="level-unit">°C</span>
+                    </div>
+                </div>
+                
+                <!-- COMANDO ON/OFF -->
+                <div class="power-controls">
+                    <button class="power-btn uniform-element {{offClass}}" id="{{controlId}}_off" onclick="window.roomControls.setThermostatPower('{{controlId}}', 'off')">OFF</button>
+                    <button class="power-btn uniform-element {{onClass}}" id="{{controlId}}_on" onclick="window.roomControls.setThermostatPower('{{controlId}}', 'on')">ON</button>
+                </div>
+            </div>
+            
+            <!-- LABEL DI STATO DINAMICA -->
+            <div class="thermostat-status-label {{climateState}}" id="{{controlId}}_climate_indicator">
+                <span id="{{controlId}}_climate_status">{{climateStatus}}</span>
+            </div>
+            
+            <!-- SLIDER IMPOSTAZIONE LIVELLO CON PULSANTI AI LATI -->
+            <div class="level-control">
+                <div class="level-label">Temperature Setting</div>
+                <div class="level-slider-container">
+                    <!-- PULSANTE DIMINUISCI A SINISTRA -->
+                    <button class="level-btn" id="{{controlId}}_decrease" onclick="window.roomControls.adjustThermostatStep('{{controlId}}', -0.5)">−</button>
+                    
+                    <!-- SLIDER AL CENTRO -->
+                    <div class="level-slider" id="{{controlId}}_slider" onclick="window.roomControls.adjustThermostatLevel(event, '{{controlId}}')">
+                        <div class="level-fill" id="{{controlId}}_fill" style="width: {{percentage}}%"></div>
+                        <div class="level-thumb" id="{{controlId}}_thumb" style="left: calc({{percentage}}% - 12px)"></div>
+                    </div>
+                    
+                    <!-- PULSANTE AUMENTA A DESTRA -->
+                    <button class="level-btn" id="{{controlId}}_increase" onclick="window.roomControls.adjustThermostatStep('{{controlId}}', 0.5)">+</button>
+                </div>
+                <div class="slider-scale">
+                    <span>{{minTemp}}°</span>
+                    <span>{{quarterTemp}}°</span>
+                    <span>{{halfTemp}}°</span>
+                    <span>{{threeQuarterTemp}}°</span>
+                    <span>{{maxTemp}}°</span>
+                </div>
+            </div>
+
+            <!-- CONTROLLI VELOCITÀ FANCOIL (se presente) -->
+            <div class="fan-speed-control" style="display: {{fanDisplay}};">
+                <div class="fan-speed-label">Fan Speed Control</div>
+                <div class="fan-speed-buttons">
+                    <button class="fan-speed-btn {{fanOff}}" id="{{controlId}}_fanOff">
+                        <div>OFF</div>
+                    </button>
+                    <button class="fan-speed-btn {{fanSlow}}" id="{{controlId}}_fanSlow">
+                        <div>SLOW</div>
+                    </button>
+                    <button class="fan-speed-btn {{fanMed}}" id="{{controlId}}_fanMed">
+                        <div>MED</div>
+                    </button>
+                    <button class="fan-speed-btn {{fanHigh}}" id="{{controlId}}_fanHigh">
+                        <div>HIGH</div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    `,
+    
+    onoff: `
+        <div class="modern-control" id="{{controlId}}_controller">
+            <!-- NOME DEL DISPOSITIVO -->
+            <div class="device-name">{{name}}</div>
+            
+            <!-- LAYOUT PRINCIPALE -->
+            <div class="control-layout">
+                <!-- DISPLAY STATO ATTUALE -->
+                <div class="current-display" id="{{controlId}}_display">
+                    <div class="display-value" id="{{controlId}}_value">{{buttonText}}</div>
+                    <div class="display-unit" id="{{controlId}}_unit">stato</div>
+                </div>
+                
+                <!-- CONTROLLI ON/OFF -->
+                <div class="onoff-controls">
+                    <button class="control-button on-button" id="{{controlId}}_on" onclick="window.roomControls.toggleOnOff('{{controlId}}')">
+                        ON
+                    </button>
+                    <button class="control-button off-button {{offClass}}" id="{{controlId}}_off" onclick="window.roomControls.toggleOnOff('{{controlId}}')">
+                        OFF
+                    </button>
+                </div>
+            </div>
+            
+            <!-- LABEL DI STATO DINAMICA -->
+            <div class="status-label {{feedbackClass}}" id="{{controlId}}_feedback">{{feedbackText}}</div>
+        </div>
+    `,
+    
+    monostable: `
+        <div class="modern-monostable" id="{{controlId}}_controller">
+            <!-- NOME DEL COMANDO -->
+            <div class="command-name" id="{{controlId}}_name">{{name}}</div>
+            
+            <!-- LAYOUT PRINCIPALE -->
+            <div class="command-layout">
+                <!-- DISPLAY STATO COMANDO -->
+                <div class="command-display" id="{{controlId}}_display">
+                    <div class="display-status" id="{{controlId}}_status">PRONTO</div>
+                    <div class="display-info" id="{{controlId}}_info">comando</div>
+                </div>
+                
+                <!-- PULSANTE MONOSTABILE -->
+                <button class="monostable-trigger" id="{{controlId}}_btn" onclick="window.roomControls.executeMonostable('{{controlId}}')">
+                    {{buttonText}}
+                    <div class="countdown-display" id="{{controlId}}_countdown"></div>
+                </button>
+            </div>
+            
+            <!-- PROGRESS BAR -->
+            <div class="progress-container" id="{{controlId}}_progress_container">
+                <div class="progress-bar" id="{{controlId}}_progress"></div>
+            </div>
+            
+            <!-- LABEL DI STATO DINAMICA -->
+            <div class="status-label" id="{{controlId}}_feedback">Pronto per esecuzione</div>
+        </div>
+    `
+};
 
 class AmanRoomManager {
     constructor(dashboardCore) {
