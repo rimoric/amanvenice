@@ -1,4 +1,22 @@
 /**
+     * Conversione configurazione JSON nel formato del core - FIXED
+     */
+    convertJSONConfigToCore(jsonConfig) {
+        const coreConfig = {
+            number: jsonConfig.roomNumber,
+            name: jsonConfig.roomName,
+            password: jsonConfig.password,
+            tabs: jsonConfig.tabs,
+            controls: {},
+            mqtt: {
+                topicPub: 'Camere/Hmi',
+                topicSub: 'Camere/Plc'
+            }
+        };
+        
+        // Converte i controlli da ogni tab nel formato core: controls[tabId] = [...]
+        jsonConfig.tabs.forEach(tab => {
+            /**
  * AMAN Venice - Dashboard Core System (COMPLETO E AGGIORNATO)
  * Sistema base modulare per dashboard camere
  * 
