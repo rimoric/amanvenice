@@ -98,7 +98,7 @@ class AmanRoomManager {
     }
     
     /**
-     * Generazione contenuti tab - BUG FIX V4 - FORMATO JSON + CORE
+     * Generazione contenuti tab - BUG FIX V5 - PRIORITÀ CORE FORMAT
      */
     async generateTabContents(roomConfig) {
         const tabsContainer = document.getElementById('tabsContainer');
@@ -113,22 +113,18 @@ class AmanRoomManager {
         console.log(`🔍 DEBUG roomConfig:`, roomConfig);
         console.log(`🔍 DEBUG roomConfig.controls:`, roomConfig.controls);
         
-        // Genera ogni tab - FIX: Gestisci entrambi i formati di configurazione
+        // Genera ogni tab - PRIORITÀ CORE FORMAT SEMPRE
         for (let i = 0; i < roomConfig.tabs.length; i++) {
             const tab = roomConfig.tabs[i];
             
-            // NUOVO: Prova prima formato JSON (tab.controls), poi formato core
+            // NUOVO: USA SEMPRE roomConfig.controls[tab.id] (formato Core convertito)
             let controls = [];
-            if (tab.controls && Array.isArray(tab.controls)) {
-                // Formato JSON: i controlli sono dentro ogni tab
-                controls = tab.controls;
-                console.log(`🔍 Tab ${tab.id}: found ${controls.length} controls (JSON format)`, controls);
-            } else if (roomConfig.controls && roomConfig.controls[tab.id]) {
-                // Formato core: i controlli sono in roomConfig.controls[tabId]
+            if (roomConfig.controls && roomConfig.controls[tab.id]) {
+                // PRIORITÀ: Formato core (già convertito dal JSON)
                 controls = roomConfig.controls[tab.id];
                 console.log(`🔍 Tab ${tab.id}: found ${controls.length} controls (Core format)`, controls);
             } else {
-                console.log(`🔍 Tab ${tab.id}: no controls found`);
+                console.log(`🔍 Tab ${tab.id}: no controls found in Core format`);
             }
             
             await this.generateTabContent(tab, controls, i === 0);
