@@ -191,7 +191,7 @@ class AmanDashboardCore {
     }
     
     /**
-     * Conversione configurazione JSON nel formato del core
+     * Conversione configurazione JSON nel formato del core - FIXED
      */
     convertJSONConfigToCore(jsonConfig) {
         const coreConfig = {
@@ -209,32 +209,33 @@ class AmanDashboardCore {
         // Converte i controlli da ogni tab nel formato core: controls[tabId] = [...]
         jsonConfig.tabs.forEach(tab => {
             if (tab.controls && tab.controls.length > 0) {
-                coreConfig.controls[tab.id] = tab.controls.map(control => ({
-                    type: control.type,
-                    name: control.config.name,
-                    mqttName: control.config.mqttDevice || control.config.mqttName,
-                    initialLevel: control.config.initialLevel,
-                    initialPower: control.config.initialPower,
-                    initialTemp: control.config.initialTemp,
-                    measuredTemp: control.config.measuredTemp,
-                    minTemp: control.config.minTemp,
-                    maxTemp: control.config.maxTemp,
-                    fanSpeed: control.config.fanSpeed,
-                    initialState: control.config.initialState,
-                    activeText: control.config.activeText,
-                    inactiveText: control.config.inactiveText,
-                    activeFeedback: control.config.activeFeedback,
-                    inactiveFeedback: control.config.inactiveFeedback,
-                    buttonText: control.config.buttonText,
-                    executingText: control.config.executingText,
-                    completedText: control.config.completedText,
-                    executionTime: control.config.executionTime,
-                    cooldownTime: control.config.cooldownTime
-                }));
+                coreConfig.controls[tab.id] = tab.controls.map(control => {
+                    // NUOVO: Estrazione sicura dei valori dal JSON
+                    const coreControl = {
+                        type: control.type,
+                        name: control.config?.name || 'Unnamed Control',
+                        mqttName: control.config?.mqttDevice || control.config?.mqttName || 'Unknown'
+                    };
+                    
+                    // NUOVO: Copia tutti i campi config al livello principale
+                    if (control.config) {
+                        Object.keys(control.config).forEach(key => {
+                            if (key !== 'name' && key !== 'mqttDevice' && key !== 'mqttName') {
+                                coreControl[key] = control.config[key];
+                            }
+                        });
+                    }
+                    
+                    return coreControl;
+                });
+                
+                console.log(`🔄 Tab ${tab.id} converted: ${coreConfig.controls[tab.id].length} controls`);
+                console.log(`🔍 First control:`, coreConfig.controls[tab.id][0]);
             }
         });
         
         console.log(`🔄 Configurazione JSON convertita per il core`);
+        console.log(`🔍 Final controls structure:`, coreConfig.controls);
         return coreConfig;
     }
     
